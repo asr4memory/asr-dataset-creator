@@ -27,7 +27,7 @@ processor = WhisperProcessor.from_pretrained("openai/whisper-small", language="P
 
 # Model initialization
 model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-small")
-model.generation_config.language = "German"
+model.generation_config.language = "Polish"
 model.generation_config.task = "transcribe"
 model.generation_config.forced_decoder_ids = None
 
