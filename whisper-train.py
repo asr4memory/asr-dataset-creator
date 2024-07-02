@@ -45,7 +45,7 @@ def prepare_dataset(batch):
     return batch
 
 # Apply data preparation
-dataset_dict = dataset_dict.map(prepare_dataset, remove_columns=dataset.column_names["train"], num_proc=4)
+dataset_dict = dataset_dict.map(prepare_dataset, remove_columns=dataset_dict.column_names["train"], num_proc=4)
 
 # Data collator definition
 @dataclass
