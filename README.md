@@ -43,7 +43,7 @@ Remember to define input and output folders for each script
 ### Training
 
 Use the dataset to train whisper model with the provided jupyter notebook
-    ```sh
+    ```
     whisper-train.ipynb
     ```
 
