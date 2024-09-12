@@ -41,7 +41,7 @@ for caption in webvtt.read(vtt_file):
 audio = AudioSegment.from_file(audio_file)
 
 # Metadata CSV-Datei initialisieren
-metadata_file = output_folder / audio_filename_stem/ "metadata.csv"
+metadata_file = output_folder / audio_filename_stem / "metadata.csv"
 with metadata_file.open(mode='w', newline='', encoding='utf-8') as csvfile:
     csvwriter = csv.writer(csvfile)
     csvwriter.writerow(["file_name", "transcription"])
