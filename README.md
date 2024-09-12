@@ -14,7 +14,7 @@ To set up the environment for this project, follow these steps:
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/yourusername/whisper-train.git
+    git clone https://gitlab.cedis.fu-berlin.de/dis/whisper-train.git
     cd whisper-train
     ```
 
@@ -43,6 +43,7 @@ Remember to define input and output folders for each script
 ### Training
 
 Use the dataset to train whisper model with the provided jupyter notebook
+
     ```
     whisper-train.ipynb
     ```
