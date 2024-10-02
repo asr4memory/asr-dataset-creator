@@ -14,7 +14,7 @@ To set up the environment for this project, follow these steps:
 
 1. Clone the repository:
     ```sh
-    git clone https://gitlab.cedis.fu-berlin.de/dis/whisper-train.git
+    git clone https://github.com/pkompiel/whisper_train.git
     cd whisper-train
     ```
 
