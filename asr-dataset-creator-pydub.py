@@ -2,6 +2,7 @@ import webvtt
 from pathlib import Path
 import csv
 from pydub import AudioSegment
+import random
 
 # Define the input and output folders
 input_folder = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_input')
@@ -24,9 +25,11 @@ vtt_file = vtt_files[0]
 # Extract the audio file name stem
 audio_filename_stem = audio_file.stem
 
-# Create a folder for the audio file and check if it already exists, if not create it
-data_folder = output_folder / audio_filename_stem / 'data'
-data_folder.mkdir(parents=True, exist_ok=True)
+# Create folders for train and test data
+data_train_folder = output_folder / audio_filename_stem / 'data' / 'train'
+data_test_folder = output_folder / audio_filename_stem / 'data' / 'test'
+data_train_folder.mkdir(parents=True, exist_ok=True)
+data_test_folder.mkdir(parents=True, exist_ok=True)
 
 # Parse the VTT file
 vtt_segments = []
@@ -37,17 +40,29 @@ for caption in webvtt.read(vtt_file):
     text = caption.text
     vtt_segments.append({"start": start_time, "end": end_time, "text": text})
 
+# Shuffle the segments to ensure randomness
+random.seed(42)  # Set seed for reproducibility
+random.shuffle(vtt_segments)
+
+# Split the segments into train and test sets (80% train, 20% test)
+split_index = int(0.8 * len(vtt_segments))
+train_segments = vtt_segments[:split_index]
+test_segments = vtt_segments[split_index:]
+
 # Load the audio file
 audio = AudioSegment.from_file(audio_file)
 
 # Initialize the metadata file
 metadata_file = output_folder / audio_filename_stem / "metadata.csv"
+
 with metadata_file.open(mode='w', newline='', encoding='utf-8') as csvfile:
     csvwriter = csv.writer(csvfile)
+    
+    # Write header for the metadata file
     csvwriter.writerow(["file_name", "transcription"])
-
-    # Create and save the audio segments based on the timestamps in the VTT file
-    for i, segment in enumerate(vtt_segments):
+    
+    # Process train segments
+    for i, segment in enumerate(train_segments):
         start_time = segment['start'] * 1000  # Miliseconds
         end_time = segment['end'] * 1000
         
@@ -58,7 +73,27 @@ with metadata_file.open(mode='w', newline='', encoding='utf-8') as csvfile:
         
         # Create the file name for the audio segment
         segment_filename = f"{audio_filename_stem}_audio_segment_{i+1}.wav"
-        segment_path = audio_filename_stem / data_folder / segment_filename
+        segment_path = data_train_folder / segment_filename
+        
+        # Save the audio segment
+        audio_chunk.export(segment_path, format="wav")
+        
+        # Add the segment to the metadata file
+        csvwriter.writerow([segment_path.relative_to(output_folder / audio_filename_stem), segment['text']])
+    
+    # Process test segments
+    for i, segment in enumerate(test_segments):
+        start_time = segment['start'] * 1000  # Miliseconds
+        end_time = segment['end'] * 1000
+        
+        audio_chunk = audio[start_time:end_time]
+        
+        # Downsampling the audio to 16 kHz
+        audio_chunk = audio_chunk.set_frame_rate(16000)
+        
+        # Create the file name for the audio segment
+        segment_filename = f"{audio_filename_stem}_audio_segment_{i+1}.wav"
+        segment_path = data_test_folder / segment_filename
         
         # Save the audio segment
         audio_chunk.export(segment_path, format="wav")
@@ -66,4 +101,4 @@ with metadata_file.open(mode='w', newline='', encoding='utf-8') as csvfile:
         # Add the segment to the metadata file
         csvwriter.writerow([segment_path.relative_to(output_folder / audio_filename_stem), segment['text']])
 
-print("Audio segments and metadata file have been successfully created.")
+print("Audio segments and metadata file for train and test sets have been successfully created.")
