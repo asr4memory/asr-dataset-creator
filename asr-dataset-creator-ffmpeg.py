@@ -1,7 +1,8 @@
 import webvtt
 from pathlib import Path
 import csv
-from pydub import AudioSegment
+import subprocess
+from tqdm import tqdm
 
 # Define the input and output folders
 input_folder = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_input')
@@ -32,13 +33,10 @@ data_folder.mkdir(parents=True, exist_ok=True)
 vtt_segments = []
 
 for caption in webvtt.read(vtt_file):
-    start_time = caption.start_in_seconds
-    end_time = caption.end_in_seconds
+    start_time = caption.start  # Use original VTT format with milliseconds
+    end_time = caption.end      # Use original VTT format with milliseconds
     text = caption.text
     vtt_segments.append({"start": start_time, "end": end_time, "text": text})
-
-# Load the audio file
-audio = AudioSegment.from_file(audio_file)
 
 # Initialize the metadata file
 metadata_file = output_folder / audio_filename_stem / "metadata.csv"
@@ -46,24 +44,29 @@ with metadata_file.open(mode='w', newline='', encoding='utf-8') as csvfile:
     csvwriter = csv.writer(csvfile)
     csvwriter.writerow(["file_name", "transcription"])
 
+    print("Start processing audio segments...")
+
     # Create and save the audio segments based on the timestamps in the VTT file
-    for i, segment in enumerate(vtt_segments):
-        start_time = segment['start'] * 1000  # Miliseconds
-        end_time = segment['end'] * 1000
-        
-        audio_chunk = audio[start_time:end_time]
-        
-        # Downsampling the audio to 16 kHz
-        audio_chunk = audio_chunk.set_frame_rate(16000)
+    for i, segment in enumerate(tqdm(vtt_segments, desc="Processing audio segments", unit="segment")):
+        start_time = segment['start']
+        end_time = segment['end']
         
         # Create the file name for the audio segment
         segment_filename = f"{audio_filename_stem}_audio_segment_{i+1}.wav"
         segment_path = audio_filename_stem / data_folder / segment_filename
-        
-        # Save the audio segment
-        audio_chunk.export(segment_path, format="wav")
-        
-        # Add the segment to the metadata file
+            
+        # FFmpeg command to extract the audio segment using precise start and end times
+        ffmpeg_command = [
+            'ffmpeg', '-loglevel', 'error', '-i', str(audio_file),
+            '-ss', start_time, '-to', end_time,
+            '-ar', '16000',
+            str(segment_path)
+            ]
+            
+        # Run the FFmpeg command
+        subprocess.run(ffmpeg_command, check=True)
+            
+        # Add the segment as a new row to the metadata file
         csvwriter.writerow([segment_path.relative_to(output_folder / audio_filename_stem), segment['text']])
 
 print("Audio segments and metadata file have been successfully created.")

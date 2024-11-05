@@ -6,3 +6,4 @@ evaluate
 jiwer
 tensorboard
 gradio
+tqdm

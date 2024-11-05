@@ -35,7 +35,7 @@ Remember to define input and output folders for each script
     ```sh
     python anonymize_vtt.py
     ```
-2. Create ASR training dataset by using either the pydub dataset creator to extract audio segments and prepare metadata. It needs an audio file (`.wav`) and a corresponding subtitle file (`.vtt`) as input
+2. Create ASR training dataset by using the ffmpeg dataset creator to extract audio segments and prepare metadata. It needs an audio file (`.wav`) and a corresponding subtitle file (`.vtt`) as input
     ```sh
     python asr-dataset-creator-pydub.py
     ```
