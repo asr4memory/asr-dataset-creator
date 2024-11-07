@@ -40,13 +40,13 @@ with open(input_vtt_file, "r", encoding="utf-8") as vtt_file:
 for word in words_to_anonymize:
     # Create a regular expression to match the word as a whole word (to avoid partial replacements)
     word_regex = r'\b' + re.escape(word) + r'\b'
-    vtt_content = re.sub(word_regex, 'XXX', vtt_content)
+    vtt_content = re.sub(word_regex, '', vtt_content)
 
-# Step 7: Replace any sequence of more than three dots with exactly three dots
-#vtt_content = re.sub(r'XXX, ', 'XXX ', vtt_content)
-vtt_content = re.sub(r'XXX\. ', 'XXX ', vtt_content)
-vtt_content = re.sub(r'(XXX ){2,}', 'XXX ', vtt_content)
-vtt_content = re.sub(r'XXX XXX([.,!?])', r'XXX\1', vtt_content)
+# Step 7: Replace any sequence of more than three "X" with exactly three X
+# vtt_content = re.sub(r'XXX, ', 'XXX ', vtt_content)
+# vtt_content = re.sub(r'XXX\. ', 'XXX ', vtt_content)
+# vtt_content = re.sub(r'(XXX ){2,}', 'XXX ', vtt_content)
+# vtt_content = re.sub(r'XXX XXX([.,!?])', r'XXX\1', vtt_content)
 
 # vtt_content = re.sub(r'\.{4,}', '...', vtt_content)
 # vtt_content = re.sub(r'(\.\.\.\s){2,}', '... ', vtt_content)

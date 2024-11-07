@@ -54,6 +54,10 @@ with metadata_file.open(mode='w', newline='', encoding='utf-8') as csvfile:
         # Create the file name for the audio segment
         segment_filename = f"{audio_filename_stem}_audio_segment_{i+1}.wav"
         segment_path = audio_filename_stem / data_folder / segment_filename
+
+        # Check if the segment file already exists; if so, skip it
+        if segment_path.exists():
+            continue
             
         # FFmpeg command to extract the audio segment using precise start and end times
         ffmpeg_command = [
