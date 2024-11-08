@@ -40,9 +40,21 @@ for caption in webvtt.read(vtt_file):
 
 # Initialize the metadata file
 metadata_file = output_folder / audio_filename_stem / "metadata.csv"
-with metadata_file.open(mode='w', newline='', encoding='utf-8') as csvfile:
+
+# Check if metadata file exists and load existing entries
+existing_files = set()
+if metadata_file.exists():
+    with metadata_file.open(mode='r', encoding='utf-8') as csvfile:
+        csvreader = csv.reader(csvfile)
+        next(csvreader)  # Skip header
+        existing_files = {row[0] for row in csvreader}  # Collect existing file names
+
+# Open metadata file in append mode
+with metadata_file.open(mode='a', newline='', encoding='utf-8') as csvfile:
     csvwriter = csv.writer(csvfile)
-    csvwriter.writerow(["file_name", "transcription"])
+    # Write header only if the file is empty
+    if not existing_files:
+        csvwriter.writerow(["file_name", "transcription"])
 
     print("Start processing audio segments...")
 

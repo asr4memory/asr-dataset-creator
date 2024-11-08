@@ -3,8 +3,8 @@ import re
 from pathlib import Path
 
 # Define input directories and files
-input_dir = Path("/Users/peterkompiel/python_scripts/asr4memory/whisper-train/data/vtt_anon/_input")
-output_dir = Path("/Users/peterkompiel/python_scripts/asr4memory/whisper-train/data/vtt_anon/_ouput")
+input_dir = Path("/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/vtt_anon/_input")
+output_dir = Path("/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/vtt_anon/_output")
 output_dir.mkdir(parents=True, exist_ok=True)
 
 # Search for vtt files and anonymized word segment CSV files in the input directory
@@ -36,20 +36,16 @@ print(f"Words to anonymize: {words_to_anonymize}")
 with open(input_vtt_file, "r", encoding="utf-8") as vtt_file:
     vtt_content = vtt_file.read()
 
-# Step 6: Replace each word in the VTT content
+# Step 6: Replace unnecessary characters in the VTT content
+vtt_content = re.sub(r'_', '', vtt_content)
+vtt_content = re.sub(r'„', '', vtt_content)
+vtt_content = re.sub(r'“', '', vtt_content)
+
+# Step 7: Replace each word in the VTT content
 for word in words_to_anonymize:
     # Create a regular expression to match the word as a whole word (to avoid partial replacements)
     word_regex = r'\b' + re.escape(word) + r'\b'
     vtt_content = re.sub(word_regex, '', vtt_content)
-
-# Step 7: Replace any sequence of more than three "X" with exactly three X
-# vtt_content = re.sub(r'XXX, ', 'XXX ', vtt_content)
-# vtt_content = re.sub(r'XXX\. ', 'XXX ', vtt_content)
-# vtt_content = re.sub(r'(XXX ){2,}', 'XXX ', vtt_content)
-# vtt_content = re.sub(r'XXX XXX([.,!?])', r'XXX\1', vtt_content)
-
-# vtt_content = re.sub(r'\.{4,}', '...', vtt_content)
-# vtt_content = re.sub(r'(\.\.\.\s){2,}', '... ', vtt_content)
 
 # Step 8: Save the modified VTT file
 output_vtt_file = output_dir / f"{input_vtt_file.stem}_anonymized.vtt"
