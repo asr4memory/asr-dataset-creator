@@ -1,7 +1,7 @@
 from datasets import load_dataset, DatasetDict
 
 # Laden des Datasets von der bereinigten CSV-Datei
-dataset = load_dataset("audiofolder", data_dir="/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_output/eg085_01_01_ffmpeg")
+dataset = load_dataset("audiofolder", data_dir="/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/merger/_output/eg_combined_dataset_v2")
 
 print("Dataset Structure:", dataset)
 print("Keys:", dataset.keys())  # Check for any unexpected split names

@@ -3,86 +3,98 @@ from pathlib import Path
 import csv
 import subprocess
 from tqdm import tqdm
+from multiprocessing import Pool, cpu_count
 
-# Define the input and output folders
-input_folder = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_input')
-output_folder = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_output')
+# Configuration
+INPUT_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_input')
+OUTPUT_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_output')
+SAMPLE_RATE = '16000'
 
-# Check if the output folder exists, if not create it
-output_folder.mkdir(parents=True, exist_ok=True)
 
-# Search for WAV and VTT files in the input folder
-wav_files = list(input_folder.glob('*.wav'))
-vtt_files = list(input_folder.glob('*.vtt'))
+def parse_vtt_file(vtt_file):
+    """Parse the VTT file and extract segments with start, end times, and text."""
+    segments = [
+        {"start": caption.start, "end": caption.end, "text": caption.text}
+        for caption in webvtt.read(vtt_file)
+    ]
+    return segments
 
-# Check if there is exactly one WAV and one VTT file in the input folder
-if len(wav_files) != 1 or len(vtt_files) != 1:
-    raise ValueError("There has to be exactly one WAV and one VTT file in the input folder.")
 
-audio_file = wav_files[0]
-vtt_file = vtt_files[0]
+def setup_output_structure(output_folder, audio_filename_stem):
+    """Prepare the output directories and metadata file path."""
+    data_folder = output_folder / audio_filename_stem / 'data'
+    data_folder.mkdir(parents=True, exist_ok=True)
+    metadata_file = output_folder / audio_filename_stem / "metadata.csv"
+    return data_folder, metadata_file
 
-# Extract the audio file name stem
-audio_filename_stem = audio_file.stem
 
-# Create a folder for the audio file and check if it already exists, if not create it
-data_folder = output_folder / audio_filename_stem / 'data'
-data_folder.mkdir(parents=True, exist_ok=True)
+def load_existing_metadata(metadata_file):
+    """Load existing metadata entries to avoid redundant processing."""
+    if metadata_file.exists():
+        with metadata_file.open(mode='r', encoding='utf-8') as file:
+            csvreader = csv.reader(file)
+            next(csvreader, None)  # Skip header
+            return {row[0] for row in csvreader}  # Collect existing file names
+    return set()
 
-# Parse the VTT file
-vtt_segments = []
+def process_segment(args):
+    """Extract a segment from the audio file using FFmpeg."""
+    (i, segment), audio_file, data_folder, output_folder, audio_filename_stem = args
+    segment_filename = f"{audio_filename_stem}_audio_segment_{i+1}.wav"
+    segment_path = data_folder / segment_filename
 
-for caption in webvtt.read(vtt_file):
-    start_time = caption.start  # Use original VTT format with milliseconds
-    end_time = caption.end      # Use original VTT format with milliseconds
-    text = caption.text
-    vtt_segments.append({"start": start_time, "end": end_time, "text": text})
+    # Skip if the segment file already exists
+    if segment_path.exists():
+        return None
 
-# Initialize the metadata file
-metadata_file = output_folder / audio_filename_stem / "metadata.csv"
+    # FFmpeg command to extract the segment
+    ffmpeg_command = [
+        'ffmpeg', '-loglevel', 'error', '-i', str(audio_file),
+        '-ss', segment['start'], '-to', segment['end'],
+        '-ar', SAMPLE_RATE, str(segment_path)
+    ]
+    subprocess.run(ffmpeg_command, check=True)
+    return segment_path.relative_to(output_folder / audio_filename_stem), segment['text']
 
-# Check if metadata file exists and load existing entries
-existing_files = set()
-if metadata_file.exists():
-    with metadata_file.open(mode='r', encoding='utf-8') as csvfile:
-        csvreader = csv.reader(csvfile)
-        next(csvreader)  # Skip header
-        existing_files = {row[0] for row in csvreader}  # Collect existing file names
 
-# Open metadata file in append mode
-with metadata_file.open(mode='a', newline='', encoding='utf-8') as csvfile:
-    csvwriter = csv.writer(csvfile)
-    # Write header only if the file is empty
-    if not existing_files:
-        csvwriter.writerow(["file_name", "transcription"])
+def main():
+    # Verify and locate input files
+    wav_files = list(INPUT_FOLDER.glob('*.wav'))
+    vtt_files = list(INPUT_FOLDER.glob('*.vtt'))
+    if len(wav_files) != 1 or len(vtt_files) != 1:
+        raise ValueError("There must be exactly one WAV and one VTT file in the input folder.")
 
+    audio_file = wav_files[0]
+    vtt_file = vtt_files[0]
+    audio_filename_stem = audio_file.stem
+
+    # Prepare output structure and load existing metadata entries
+    data_folder, metadata_file = setup_output_structure(OUTPUT_FOLDER, audio_filename_stem)
+    existing_files = load_existing_metadata(metadata_file)
+    vtt_segments = parse_vtt_file(vtt_file)
+
+    # Prepare tasks for parallel processing
+    tasks = [
+        ((i, segment), audio_file, data_folder, OUTPUT_FOLDER, audio_filename_stem)
+        for i, segment in enumerate(vtt_segments)
+        if f"{audio_filename_stem}_audio_segment_{i+1}.wav" not in existing_files
+    ]
+
+    # Process segments in parallel
     print("Start processing audio segments...")
+    with Pool(processes=cpu_count()) as pool:
+        results = list(tqdm(pool.imap_unordered(process_segment, tasks), total=len(tasks),
+                            desc="Processing audio segments", unit="segment"))
 
-    # Create and save the audio segments based on the timestamps in the VTT file
-    for i, segment in enumerate(tqdm(vtt_segments, desc="Processing audio segments", unit="segment")):
-        start_time = segment['start']
-        end_time = segment['end']
-        
-        # Create the file name for the audio segment
-        segment_filename = f"{audio_filename_stem}_audio_segment_{i+1}.wav"
-        segment_path = audio_filename_stem / data_folder / segment_filename
+    # Write new metadata entries
+    with metadata_file.open(mode='a', newline='', encoding='utf-8') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        if not existing_files:
+            csvwriter.writerow(["file_name", "transcription"])
+        csvwriter.writerows(result for result in results if result)
 
-        # Check if the segment file already exists; if so, skip it
-        if segment_path.exists():
-            continue
-            
-        # FFmpeg command to extract the audio segment using precise start and end times
-        ffmpeg_command = [
-            'ffmpeg', '-loglevel', 'error', '-i', str(audio_file),
-            '-ss', start_time, '-to', end_time,
-            '-ar', '16000',
-            str(segment_path)
-            ]
-            
-        # Run the FFmpeg command
-        subprocess.run(ffmpeg_command, check=True)
-            
-        # Add the segment as a new row to the metadata file
-        csvwriter.writerow([segment_path.relative_to(output_folder / audio_filename_stem), segment['text']])
+    print("Audio segments and metadata file have been successfully created.")
 
-print("Audio segments and metadata file have been successfully created.")
+
+if __name__ == "__main__":
+    main()

@@ -40,6 +40,11 @@ with open(input_vtt_file, "r", encoding="utf-8") as vtt_file:
 vtt_content = re.sub(r'_', '', vtt_content)
 vtt_content = re.sub(r'„', '', vtt_content)
 vtt_content = re.sub(r'“', '', vtt_content)
+vtt_content = re.sub(r'"', '', vtt_content)
+vtt_content = re.sub(r'(?:.*\n){3}.*\(\.\.\.\?\).*', '', vtt_content) # Remove whole segments with (...?)
+vtt_content = re.sub(r'\(', '', vtt_content)
+vtt_content = re.sub(r'\?\)', '', vtt_content)
+vtt_content = re.sub(r'\n{3,}', '\n\n', vtt_content)
 
 # Step 7: Replace each word in the VTT content
 for word in words_to_anonymize:
