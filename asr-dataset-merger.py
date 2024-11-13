@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 # Configuration
 DATASETS_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/merger/_input')
-OUTPUT_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/merger/_output/eg_combined_dataset_v2')
+OUTPUT_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/merger/_output/eg_fzh-wde_combined_dataset_v1')
 OUTPUT_DATA_FOLDER = OUTPUT_FOLDER / 'data'
 OUTPUT_METADATA_FILE = OUTPUT_FOLDER / 'metadata.csv'
 
@@ -36,7 +36,7 @@ def process_dataset(dataset_path):
         for row in tqdm(csvreader, desc=f"Copying files from {dataset_path.name}", unit="file"):
             segment_path = dataset_path / row[0]
             if segment_path.exists():
-                new_segment_name = f"{dataset_path.name}_{segment_path.name}"
+                new_segment_name = f"{segment_path.name}"
                 new_segment_path = OUTPUT_DATA_FOLDER / new_segment_name
 
                 # Copy the segment to the unified data folder
