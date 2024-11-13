@@ -9,6 +9,7 @@ from multiprocessing import Pool, cpu_count
 INPUT_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_input')
 OUTPUT_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_output')
 SAMPLE_RATE = '16000'
+OFFSET = 0.075  # Add a small offset to the start time and end time
 
 
 def parse_vtt_file(vtt_file):
@@ -37,6 +38,13 @@ def load_existing_metadata(metadata_file):
             return {row[0] for row in csvreader}  # Collect existing file names
     return set()
 
+
+def time_to_seconds(time_str):
+    """Convert a time string in HH:MM:SS.sss format to seconds."""
+    h, m, s = time_str.split(':')
+    return int(h) * 3600 + int(m) * 60 + float(s)
+
+
 def process_segment(args):
     """Extract a segment from the audio file using FFmpeg."""
     (i, segment), audio_file, data_folder, output_folder, audio_filename_stem = args
@@ -46,11 +54,14 @@ def process_segment(args):
     # Skip if the segment file already exists
     if segment_path.exists():
         return None
+    
+    adjusted_start = max(0, time_to_seconds(segment['start']) - OFFSET)
+    adjusted_end = time_to_seconds(segment['end']) - OFFSET
 
     # FFmpeg command to extract the segment
     ffmpeg_command = [
         'ffmpeg', '-loglevel', 'error', '-i', str(audio_file),
-        '-ss', segment['start'], '-to', segment['end'],
+        '-ss', str(adjusted_start), '-to', str(adjusted_end),
         '-ar', SAMPLE_RATE, str(segment_path)
     ]
     subprocess.run(ffmpeg_command, check=True)
