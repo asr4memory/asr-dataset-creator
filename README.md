@@ -1,6 +1,6 @@
 # whisper-train
 
-This repository contains scripts and resources for training automatic speech recognition (ASR) models with Oral History data using the Whisper model from OpenAI. The project is inspired by the Hugging Face documentation and blog posts on fine-tuning Whisper models. The workflows are optimized for the ASR4Memory project. 
+This repository contains scripts and resources for preprocessing audiovisual Oral History data and training automatic speech recognition (ASR) models using Whisper from OpenAI. The project is inspired by the Hugging Face documentation and blog posts on fine-tuning Whisper models. The workflows are optimized for the ASR4Memory project. 
 
 ## Table of Contents
 
