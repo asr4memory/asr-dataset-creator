@@ -2,12 +2,17 @@ import csv
 from pathlib import Path
 import shutil
 from tqdm import tqdm
+from app_config import get_config
 
 # Configuration
-DATASETS_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/merger/_input')
-OUTPUT_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/merger/_output/eg_fzh-wde_combined_dataset_v1')
-OUTPUT_DATA_FOLDER = OUTPUT_FOLDER / 'data'
-OUTPUT_METADATA_FILE = OUTPUT_FOLDER / 'metadata.csv'
+config = get_config()["dataset_merger"]
+
+DATASETS_FOLDER = Path(config["input_directory"])
+OUTPUT_FOLDER = Path(config["output_directory"])
+MERGED_DATASET_NAME = config["merged_dataset_name"]
+MERGED_DATASET_FOLDER = OUTPUT_FOLDER / MERGED_DATASET_NAME
+OUTPUT_DATA_FOLDER = MERGED_DATASET_FOLDER/ 'data'
+OUTPUT_METADATA_FILE = MERGED_DATASET_FOLDER/ 'metadata.csv'
 
 
 def setup_output_structure():

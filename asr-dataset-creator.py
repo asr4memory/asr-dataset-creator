@@ -4,12 +4,15 @@ import csv
 import subprocess
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
+from app_config import get_config
 
 # Configuration
-INPUT_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_input')
-OUTPUT_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_output')
-SAMPLE_RATE = '16000'
-OFFSET = 0.075  # Add a 0.075 offset to the start time and end time
+config = get_config()["dataset_creator"]
+
+INPUT_FOLDER = Path(config["input_directory"])
+OUTPUT_FOLDER = Path(config["output_directory"])
+SAMPLE_RATE = config["sample_rate"]
+OFFSET = config["offset"]
 
 
 def parse_vtt_file(vtt_file):

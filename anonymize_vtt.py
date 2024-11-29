@@ -1,61 +1,100 @@
 import pandas as pd
 import re
 from pathlib import Path
+from app_config import get_config
+
+# Load the application configuration
+config = get_config()["vtt_anonymization"]
 
 # Define input directories and files
-input_dir = Path("/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/vtt_anon/_input")
-output_dir = Path("/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/vtt_anon/_output")
-output_dir.mkdir(parents=True, exist_ok=True)
+INPUT_DIR = Path(config["input_directory"])
+OUTPUT_DIR = Path(config["output_directory"])
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Search for vtt files and anonymized word segment CSV files in the input directory
-vtt_files = list(input_dir.glob("*.vtt"))
-csv_files = list(input_dir.glob("*.csv"))
+def validate_input_files(INPUT_DIR):
+    """
+    Validates that exactly one VTT file and one CSV file exist in the input directory.
+    """
+    vtt_files = list(INPUT_DIR.glob("*.vtt"))
+    csv_files = list(INPUT_DIR.glob("*.csv"))
 
-#Check if there is exactly one VTT and one CSV file in the input directory
-if len(vtt_files) != 1 or len(csv_files) != 1:
-    raise ValueError("Es muss genau eine TXT- und eine CSV-Datei im Eingabeordner vorhanden sein.")
+    if len(vtt_files) != 1 or len(csv_files) != 1:
+        raise ValueError("There must be exactly one VTT and one CSV file in the input directory")
 
-input_vtt_file = vtt_files[0]
-input_csv_file = csv_files[0]
+    return vtt_files[0], csv_files[0]
 
-# Step 1: Load the anonymized CSV file
-df = pd.read_csv(input_csv_file, delimiter="\t", encoding="utf-8")
 
-# Step 2: Remove punctuation from the 'WORD' column
-df['CLEANED_WORD'] = df['WORD'].apply(lambda x: re.sub(r'[^\w\s-]', '', x) if isinstance(x, str) else x)
+def load_csv(file_path):
+    """
+    Loads the anonymized CSV file and processes it.
+    """
+    df = pd.read_csv(file_path, delimiter="\t", encoding="utf-8")
+    df['CLEANED_WORD'] = df['WORD'].apply(lambda x: re.sub(r'[^\w\s-]', '', x) if isinstance(x, str) else x)
+    words_to_anonymize = df[df['SCORE'] == 'x']['CLEANED_WORD'].tolist()
+    return list(set(words_to_anonymize))  # Remove duplicates
 
-# Step 3: Find all words with 'x' in the SCORE column
-words_to_anonymize = df[df['SCORE'] == 'x']['CLEANED_WORD'].tolist()
 
-# Step 4: Remove duplicates by converting to a set, then back to a list
-words_to_anonymize = list(set(words_to_anonymize))
+def load_vtt(file_path):
+    """
+    Loads the VTT file content.
+    """
+    with open(file_path, "r", encoding="utf-8") as vtt_file:
+        return vtt_file.read()
 
-print(f"Words to anonymize: {words_to_anonymize}")
 
-# Step 5: Load the VTT file
-with open(input_vtt_file, "r", encoding="utf-8") as vtt_file:
-    vtt_content = vtt_file.read()
+def apply_replacements(content, replacements):
+    """
+    Applies character replacements on the VTT content.
+    """
+    for item in replacements:
+        pattern = item["pattern"]
+        replacement = item["replacement"]
+        content = re.sub(pattern, replacement, content)
+    return content
 
-# Step 6: Replace unnecessary characters in the VTT content
-vtt_content = re.sub(r'_', '', vtt_content)
-vtt_content = re.sub(r'„', '', vtt_content)
-vtt_content = re.sub(r'“', '', vtt_content)
-vtt_content = re.sub(r'"', '', vtt_content)
-vtt_content = re.sub(r'\<i\>', '', vtt_content)
-vtt_content = re.sub(r'(?:.*\n){3}.*\(\.\.\.\?\).*', '', vtt_content) # Remove whole segments with (...?)
-vtt_content = re.sub(r'\(', '', vtt_content)
-vtt_content = re.sub(r'\?\)', '', vtt_content)
-vtt_content = re.sub(r'\n{3,}', '\n\n', vtt_content)
 
-# Step 7: Replace each word in the VTT content
-for word in words_to_anonymize:
-    # Create a regular expression to match the word as a whole word (to avoid partial replacements)
-    word_regex = r'\b' + re.escape(word) + r'\b'
-    vtt_content = re.sub(word_regex, '', vtt_content)
+def anonymize_words(content, words_to_anonymize):
+    """
+    Replaces specified words in the VTT content.
+    """
+    for word in words_to_anonymize:
+        word_regex = r'\b' + re.escape(word) + r'\b'
+        content = re.sub(word_regex, '', content)
+    return content
 
-# Step 8: Save the modified VTT file
-output_vtt_file = output_dir / f"{input_vtt_file.stem}_anonymized.vtt"
-with open(output_vtt_file, "w", encoding="utf-8") as vtt_file:
-    vtt_file.write(vtt_content)
 
-print(f"Anonymized VTT file saved at: {output_vtt_file}")
+def save_vtt(content, output_path):
+    """
+    Saves the modified VTT content to a file.
+    """
+    with open(output_path, "w", encoding="utf-8") as vtt_file:
+        vtt_file.write(content)
+    print(f"Anonymized VTT file saved at: {output_path}")
+
+
+def main():
+    """Main function to execute the VTT anonymization process."""
+    # Validate input files
+    input_vtt_file, input_csv_file = validate_input_files(INPUT_DIR)
+
+    # Load CSV and extract words to anonymize
+    words_to_anonymize = load_csv(input_csv_file)
+    print(f"Words to anonymize: {words_to_anonymize}")
+
+    # Load VTT file content
+    vtt_content = load_vtt(input_vtt_file)
+
+    # Apply replacements
+    replacements = config.get("vtt_replacements", [])
+    vtt_content = apply_replacements(vtt_content, replacements)
+
+    # Anonymize words
+    vtt_content = anonymize_words(vtt_content, words_to_anonymize)
+
+    # Save the modified VTT content
+    output_vtt_file = OUTPUT_DIR / f"{input_vtt_file.stem}_anonymized.vtt"
+    save_vtt(vtt_content, output_vtt_file)
+
+
+if __name__ == "__main__":
+    main()

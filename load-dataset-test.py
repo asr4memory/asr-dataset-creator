@@ -1,7 +1,11 @@
 from datasets import load_dataset, DatasetDict
+from app_config import get_config
 
-# Laden des Datasets von der bereinigten CSV-Datei
-dataset = load_dataset("audiofolder", data_dir="/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/merger/_output/eg_combined_dataset_v2")
+# Initialize the configuration
+config = get_config()["dataset_test"]
+
+# Load the dataset
+dataset = load_dataset("audiofolder", data_dir=config["input_directory"])
 
 print("Dataset Structure:", dataset)
 print("Keys:", dataset.keys())  # Check for any unexpected split names
@@ -13,18 +17,18 @@ if isinstance(dataset, DatasetDict):
 else:
     print(f"Dataset Length: {len(dataset)}")
 
-# Dataset in Trainings- und Testsets aufteilen mit festem Seed
+# Split the dataset into training and testing sets
 split_dataset = dataset['train'].train_test_split(test_size=0.2, seed=42)  # 42 ist ein Beispielwert für den Seed
 
-# Erstellen eines DatasetDict-Objekts
+# Create a DatasetDict object
 dataset = DatasetDict({
     'train': split_dataset['train'],
     'test': split_dataset['test']
 })
 
-# Überprüfen des ersten Datensatzes
+# Check the first example in the training and testing sets
 print(dataset['train'][0])
 print(dataset['test'][0])
 
-# Gesamtes DatasetDict anzeigen
+# Show the whole dataset
 print(dataset)
