@@ -9,7 +9,7 @@ from multiprocessing import Pool, cpu_count
 INPUT_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_input')
 OUTPUT_FOLDER = Path('/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/_output')
 SAMPLE_RATE = '16000'
-OFFSET = 0.075  # Add a small offset to the start time and end time
+OFFSET = 0.075  # Add a 0.075 offset to the start time and end time
 
 
 def parse_vtt_file(vtt_file):
