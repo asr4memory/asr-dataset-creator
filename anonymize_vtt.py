@@ -1,10 +1,14 @@
 import pandas as pd
 import re
 from pathlib import Path
+from app_config import get_config
+
+# Load the application configuration
+config = get_config()["vtt_anonymization"]
 
 # Define input directories and files
-input_dir = Path("/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/vtt_anon/_input")
-output_dir = Path("/Users/peterkompiel/python_scripts/asr4memory/processing_files/whisper-train/vtt_anon/_output")
+input_dir = Path(config["input_directory"])
+output_dir = Path(config["output_directory"])
 output_dir.mkdir(parents=True, exist_ok=True)
 
 # Search for vtt files and anonymized word segment CSV files in the input directory
@@ -13,7 +17,7 @@ csv_files = list(input_dir.glob("*.csv"))
 
 #Check if there is exactly one VTT and one CSV file in the input directory
 if len(vtt_files) != 1 or len(csv_files) != 1:
-    raise ValueError("Es muss genau eine TXT- und eine CSV-Datei im Eingabeordner vorhanden sein.")
+    raise ValueError("There has to be exactly one VTT and one CSV file in the input directory")
 
 input_vtt_file = vtt_files[0]
 input_csv_file = csv_files[0]
@@ -37,15 +41,11 @@ with open(input_vtt_file, "r", encoding="utf-8") as vtt_file:
     vtt_content = vtt_file.read()
 
 # Step 6: Replace unnecessary characters in the VTT content
-vtt_content = re.sub(r'_', '', vtt_content)
-vtt_content = re.sub(r'„', '', vtt_content)
-vtt_content = re.sub(r'“', '', vtt_content)
-vtt_content = re.sub(r'"', '', vtt_content)
-vtt_content = re.sub(r'\<i\>', '', vtt_content)
-vtt_content = re.sub(r'(?:.*\n){3}.*\(\.\.\.\?\).*', '', vtt_content) # Remove whole segments with (...?)
-vtt_content = re.sub(r'\(', '', vtt_content)
-vtt_content = re.sub(r'\?\)', '', vtt_content)
-vtt_content = re.sub(r'\n{3,}', '\n\n', vtt_content)
+replacements = config.get("vtt_replacements", [])
+for item in replacements:
+    pattern = item["pattern"]
+    replacement = item["replacement"]
+    vtt_content = re.sub(pattern, replacement, vtt_content)
 
 # Step 7: Replace each word in the VTT content
 for word in words_to_anonymize:

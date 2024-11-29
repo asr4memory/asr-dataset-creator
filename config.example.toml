@@ -1,0 +1,29 @@
+[vtt_anonymization]
+input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_anonymization/_input/"
+output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_anonymization/_output/"
+
+vtt_replacements = [
+  { pattern = "_", replacement = "" },
+  { pattern = "„", replacement = "" },
+  { pattern = "“", replacement = "" },
+  { pattern = "\"", replacement = "" },
+  { pattern = "\\<i\\>", replacement = "" },
+  { pattern = "(?:.*\\n){3}.*\\(\\.\\.\\.\\?\\).*", replacement = "" },
+  { pattern = "\\(", replacement = "" },
+  { pattern = "\\?\\)", replacement = "" },
+  { pattern = "\\n{3,}", replacement = "\\n\\n" }
+]
+
+[dataset_creator]
+input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_creator/_input/"
+output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_creator/_output/"
+sample_rate = "16000"
+offset = 0.075
+
+[dataset_merger]
+input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_merger/_input/"
+output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_creator/_output/"
+merged_dataset_name = "eg_fzh-wde_combined_dataset_v2"
+
+[dataset_test]
+input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_test/_input/"
