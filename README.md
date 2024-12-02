@@ -18,12 +18,6 @@ To set up the environment for this project, follow these steps:
 
 ## Usage
 
-### Preliminary remark
-
-Remember to define input and output folders for each script
-
-### Data Preparation
-
 1. Anonymize subtile files if necessary (`.vtt`) using anonymized word segment tables (`.csv`) provided by the ASR4Memory pipelines.
     ```sh
     python anonymize_vtt.py
@@ -35,4 +29,8 @@ Remember to define input and output folders for each script
 3. Merge exiting datasets into one large dataset
     ```sh
     python asr-dataset-merger.py
+    ```
+4. Test the created datasets
+    ```sh
+    python load-data-set.py
     ```
