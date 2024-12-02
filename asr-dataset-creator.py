@@ -6,7 +6,7 @@ from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 from app_config import get_config
 
-# Configuration
+# Load the configuration
 config = get_config()["dataset_creator"]
 
 INPUT_FOLDER = Path(config["input_directory"])

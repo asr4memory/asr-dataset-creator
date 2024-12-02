@@ -3,10 +3,9 @@ import re
 from pathlib import Path
 from app_config import get_config
 
-# Load the application configuration
+# Load the configuration
 config = get_config()["vtt_anonymization"]
 
-# Define input directories and files
 INPUT_DIR = Path(config["input_directory"])
 OUTPUT_DIR = Path(config["output_directory"])
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

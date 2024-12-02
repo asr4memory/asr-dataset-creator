@@ -4,7 +4,7 @@ import shutil
 from tqdm import tqdm
 from app_config import get_config
 
-# Configuration
+# Load the configuration
 config = get_config()["dataset_merger"]
 
 DATASETS_FOLDER = Path(config["input_directory"])
@@ -59,7 +59,7 @@ def append_to_metadata(file_name, transcription):
 
 
 def merge_datasets():
-    """Main function to orchestrate the merging of datasets."""
+    """Main function for the merging of datasets."""
     setup_output_structure()
     initialize_metadata_file()
 
