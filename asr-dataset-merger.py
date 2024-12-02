@@ -48,7 +48,7 @@ def process_dataset(dataset_path):
                 shutil.copy(segment_path, new_segment_path)
 
                 # Append entry to the combined metadata.csv
-                append_to_metadata(new_segment_path.relative_to(OUTPUT_FOLDER), row[1])
+                append_to_metadata(new_segment_path.relative_to(MERGED_DATASET_FOLDER), row[1])
 
 
 def append_to_metadata(file_name, transcription):
