@@ -26,4 +26,4 @@ output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_creat
 merged_dataset_name = "merged_dataset_example"
 
 [dataset_test]
-input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_test/_input/"
+input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_test/_input/dataset_example/"
