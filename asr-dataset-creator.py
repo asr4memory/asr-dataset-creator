@@ -58,8 +58,8 @@ def process_segment(args):
     if segment_path.exists():
         return None
     
-    adjusted_start = max(0, time_to_seconds(segment['start']) - OFFSET)
-    adjusted_end = time_to_seconds(segment['end']) - OFFSET
+    adjusted_start = max(0, time_to_seconds(segment['start']) + OFFSET)
+    adjusted_end = time_to_seconds(segment['end']) + OFFSET
 
     # FFmpeg command to extract the segment
     ffmpeg_command = [
