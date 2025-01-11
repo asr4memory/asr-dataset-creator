@@ -22,7 +22,10 @@ def initialize_config():
             combined_config["vtt_anonymization"] = merge_dicts(
                 vtt_anonymization_defaults, vtt_anonymization_config
             )
-
+            combined_config["vtt_to_txt"] = {
+                **CONST_DEFAULT_CONFIG["vtt_to_txt"],
+                **data.get("vtt_to_txt", {}),
+            }    
             combined_config["dataset_creator"] = {
                 **CONST_DEFAULT_CONFIG["dataset_creator"],
                 **data.get("dataset_creator", {}),

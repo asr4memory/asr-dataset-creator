@@ -5,6 +5,10 @@ if present.
 """
 
 CONST_DEFAULT_CONFIG = {
+    "vtt_to_txt": {
+        "input_directory": "",
+        "output_directory": "",
+    },
     "vtt_anonymization": {
         "input_directory": "",
         "output_directory": "",

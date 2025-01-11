@@ -12,25 +12,24 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 def validate_input_files(INPUT_DIR):
     """
-    Validates that exactly one VTT file and one CSV file exist in the input directory.
+    Validates that exactly one VTT file and one JSON file exist in the input directory.
     """
     vtt_files = list(INPUT_DIR.glob("*.vtt"))
-    csv_files = list(INPUT_DIR.glob("*.csv"))
+    json_files = list(INPUT_DIR.glob("*.json"))
 
-    if len(vtt_files) != 1 or len(csv_files) != 1:
-        raise ValueError("There must be exactly one VTT and one CSV file in the input directory")
+    if len(vtt_files) != 1 or len(json_files) != 1:
+        raise ValueError("There must be exactly one VTT and one JSON file in the input directory")
 
-    return vtt_files[0], csv_files[0]
+    return vtt_files[0], json_files[0]
 
 
-def load_csv(file_path):
+def load_json(file_path):
     """
-    Loads the anonymized CSV file and processes it.
+    Loads the anonymized JSON file and processes it.
     """
-    df = pd.read_csv(file_path, delimiter="\t", encoding="utf-8")
-    df['CLEANED_WORD'] = df['WORD'].apply(lambda x: re.sub(r'[^\w\s-]', '', x) if isinstance(x, str) else x)
-    words_to_anonymize = df[df['SCORE'] == 'x']['CLEANED_WORD'].tolist()
-    return list(set(words_to_anonymize))  # Remove duplicates
+    df = pd.read_json(file_path, encoding="utf-8")
+    words_to_anonymize = df[df['is_historical'] == False]['entity_name'].tolist()
+    return list(words_to_anonymize) 
 
 
 def load_vtt(file_path):
@@ -57,7 +56,7 @@ def anonymize_words(content, words_to_anonymize):
     Replaces specified words in the VTT content.
     """
     for word in words_to_anonymize:
-        word_regex = r'\b' + re.escape(word) + r'\b'
+        word_regex = r'(?:.*\n){0,3}.*\b' + re.escape(word) + r'\b.*\n?'
         content = re.sub(word_regex, '', content)
     return content
 
@@ -74,10 +73,10 @@ def save_vtt(content, output_path):
 def main():
     """Main function to execute the VTT anonymization process."""
     # Validate input files
-    input_vtt_file, input_csv_file = validate_input_files(INPUT_DIR)
+    input_vtt_file, input_json_file = validate_input_files(INPUT_DIR)
 
     # Load CSV and extract words to anonymize
-    words_to_anonymize = load_csv(input_csv_file)
+    words_to_anonymize = load_json(input_json_file)
     print(f"Words to anonymize: {words_to_anonymize}")
 
     # Load VTT file content
