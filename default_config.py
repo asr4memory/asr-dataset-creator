@@ -17,7 +17,8 @@ CONST_DEFAULT_CONFIG = {
         "llm_max_new_tokens": 10000,  
     },
     "vtt_anonymization": {
-        "input_directory": "",
+        "input_directory_vtt": "",
+        "input_directory_json": "",
         "output_directory": "",
         "vtt_replacements": [], 
     },
