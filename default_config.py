@@ -9,6 +9,13 @@ CONST_DEFAULT_CONFIG = {
         "input_directory": "",
         "output_directory": "",
     },
+    "ner_workflow": {
+        "input_directory": "",
+        "output_directory": "",
+        "ner_batch_size": 15,
+        "ner_threshold": 0.5,
+        "llm_max_new_tokens": 10000,  
+    },
     "vtt_anonymization": {
         "input_directory": "",
         "output_directory": "",

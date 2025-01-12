@@ -26,6 +26,10 @@ def initialize_config():
                 **CONST_DEFAULT_CONFIG["vtt_to_txt"],
                 **data.get("vtt_to_txt", {}),
             }    
+            combined_config["ner_workflow"] = {
+                **CONST_DEFAULT_CONFIG["ner_workflow"],
+                **data.get("ner_workflow", {}),
+            }
             combined_config["dataset_creator"] = {
                 **CONST_DEFAULT_CONFIG["dataset_creator"],
                 **data.get("dataset_creator", {}),
