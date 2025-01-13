@@ -5,6 +5,7 @@ import warnings
 from tqdm import tqdm
 import json
 import transformers
+# from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 import torch
 from app_config import get_config
 import gc
@@ -13,6 +14,7 @@ import gc
 To-Do:
 - Compare number of entities in CSV and JSON files
 - Remove common wrongly recognized entities from unique_entities list 
+- Try running Llama-3.3-70B-Instruct model
 """
 
 # Load the configuration
@@ -125,6 +127,31 @@ def load_model():
         device_map="auto",   
     )
     return pipeline
+
+# def load_model():
+#     """
+#     Load the LLM model in 8-bit quantized form.
+#     """
+#     model_id = "meta-llama/Llama-3.3-70B-Instruct"
+
+#     quantization_config = BitsAndBytesConfig(load_in_8bit=True)
+    
+#     tokenizer = AutoTokenizer.from_pretrained(model_id)
+    
+#     model = AutoModelForCausalLM.from_pretrained(
+#         model_id,
+#         quantization_config=quantization_config,
+#         device_map="auto",
+#         torch_dtype=torch.float16  
+#     )
+    
+#     llm_pipeline = pipeline(
+#         "text-generation",
+#         model=model,
+#         tokenizer=tokenizer,
+#     )
+    
+#     return llm_pipeline
 
 
 def filter_historical_entities(llm_pipeline, unique_entities, transcription_txt_file):
