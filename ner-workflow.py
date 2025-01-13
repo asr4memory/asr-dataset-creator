@@ -9,6 +9,12 @@ import torch
 from app_config import get_config
 import gc
 
+"""
+To-Do:
+- Compare number of entities in CSV and JSON files
+- Remove common wrongly recognized entities from unique_entities list 
+"""
+
 # Load the configuration
 config = get_config()["ner_workflow"]
 
