@@ -5,14 +5,17 @@ import warnings
 from tqdm import tqdm
 import json
 import transformers
-# from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+# from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, BitsAndBytesConfig
 import torch
 from app_config import get_config
 import gc
 
 """
 To-Do:
+- Experiment with different temperatures for LLM filtering
 - Compare number of entities in CSV and JSON files
+- If there are entites missing in the JSON file, add them from the CSV file with historical flag set to false
+- Other Option: Retry LLM filtering until all entities are present in the JSON file (maybe with another temperature value???)
 - Remove common wrongly recognized entities from unique_entities list 
 - Try running Llama-3.3-70B-Instruct model
 """
@@ -134,7 +137,11 @@ def load_model():
 #     """
 #     model_id = "meta-llama/Llama-3.3-70B-Instruct"
 
-#     quantization_config = BitsAndBytesConfig(load_in_8bit=True)
+#     quantization_config = BitsAndBytesConfig(
+#         load_in_4bit=True,
+#         bnb_4bit_quant_type="nf4",
+#         bnb_4bit_compute_dtype=torch.bfloat16
+#     )
     
 #     tokenizer = AutoTokenizer.from_pretrained(model_id)
     
@@ -142,16 +149,15 @@ def load_model():
 #         model_id,
 #         quantization_config=quantization_config,
 #         device_map="auto",
-#         torch_dtype=torch.float16  
 #     )
     
-#     llm_pipeline = pipeline(
+#     pipeline = pipeline(
 #         "text-generation",
 #         model=model,
 #         tokenizer=tokenizer,
 #     )
     
-#     return llm_pipeline
+#     return pipeline
 
 
 def filter_historical_entities(llm_pipeline, unique_entities, transcription_txt_file):
