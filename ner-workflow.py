@@ -13,9 +13,9 @@ import gc
 """
 To-Do:
 - Experiment with different temperatures for LLM filtering
-- Compare number of entities in CSV and JSON files
-- If there are entites missing in the JSON file, add them from the CSV file with historical flag set to false
-- Other Option: Retry LLM filtering until all entities are present in the JSON file (maybe with another temperature value???)
+- Compare number of entities in CSV and JSON files --> CHECK
+- If there are entites missing in the JSON file, add them from the CSV file with historical flag set to false --> CHECK
+- Other Option: Retry LLM filtering until all entities are present in the JSON file (maybe with another temperature value???) --> CHECK
 - Remove common wrongly recognized entities from unique_entities list 
 - Try running Llama-3.3-70B-Instruct model
 """
@@ -93,6 +93,7 @@ def ner_workflow(transcription_txt_file):
     # Remove duplicates from the entities list
     unique_entities = []
     seen_entities = set()  # Set to store unique entities
+    unique_entities_names= []
 
     for entity in entities:
         # Use a tuple of text and label as the identifier for uniqueness
@@ -100,12 +101,20 @@ def ner_workflow(transcription_txt_file):
 
         if identifier not in seen_entities:
             unique_entities.append(entity)
+            unique_entities_names.append(entity["text"])
             seen_entities.add(identifier)
 
     logging.info(f"Total number of found entities before deletion of duplicates: {len(entities)}")
     logging.info(f"Total number of found entities after deletion of duplicates: {len(unique_entities)}")  
 
     # Output entities as tab-separated CSV
+
+    return unique_entities, unique_entities_names
+
+def save_entities_csv(unique_entities, transcription_txt_file):
+    """
+    Output entities as tab-separated CSV
+    """
     output_entities_file = OUTPUT_DIR / f"{transcription_txt_file.stem}_entities_batch_size={batch_size}.csv"
     with open(output_entities_file, "w", encoding="utf-8") as file:
         # Write header
@@ -114,8 +123,6 @@ def ner_workflow(transcription_txt_file):
         for entity in unique_entities:
             file.write(f"{entity['text']}\t{entity['label']}\n")
     logging.info(f"Entities saved as: {output_entities_file}")
-
-    return unique_entities
 
 
 def load_model():
@@ -160,7 +167,7 @@ def load_model():
 #     return pipeline
 
 
-def filter_historical_entities(llm_pipeline, unique_entities, transcription_txt_file):
+def filter_historical_entities(llm_pipeline, unique_entities, unique_entities_names):
     """
     Filter historical entities using a large language model
     """
@@ -192,7 +199,7 @@ def filter_historical_entities(llm_pipeline, unique_entities, transcription_txt_
     ]
     # Generate the output using the LLM
     logging.info("Starting the filtering process with the LLM.")
-    outputs = llm_pipeline(messages, max_new_tokens=5000)
+    outputs = llm_pipeline(messages, max_new_tokens=10000)
     output = outputs[0]["generated_text"]
 
     # Extract the assistant content from the output
@@ -201,15 +208,34 @@ def filter_historical_entities(llm_pipeline, unique_entities, transcription_txt_
 
     # Parse the assistant content as JSON
     try:
-        parsed_output = json.loads(assistant_content)
+        parsed_llm_entities = json.loads(assistant_content)
     except json.JSONDecodeError as e:
         logging.error(f"Error parsing the JSON output: {e}")
-        parsed_output = {}
+        parsed_llm_entities = []
+    
+    if not isinstance(parsed_llm_entities, list):
+        logging.warning("LLM output was not a list of dictionaries. Retrying the LLM filtering process.")
+        parsed_llm_entities = []
+        llm_entity_names = []
+    
+    else:
+        llm_entity_names = []
+        for entity in parsed_llm_entities:
+            llm_entity_names.append(entity["entity_name"])
+        
+        if set(unique_entities_names) == set(llm_entity_names):
+            logging.info("Success: The gliner and LLM outputs contain the same entites")
+        else:
+            logging.warning("Warning: The gliner and LLM outputs do not contain the same entites. Retrying the LLM filtering process.")
 
+    return parsed_llm_entities, llm_entity_names
+
+
+def save_historical_entities(parsed_llm_entities, transcription_txt_file):
     # Save the historical entities as JSON
     output_historical_entities_file = OUTPUT_DIR / f"{transcription_txt_file.stem}_historical_entities.json"
     with open(output_historical_entities_file, "w", encoding="utf-8") as f:
-        json.dump(parsed_output, f, ensure_ascii=False, indent=2)
+        json.dump(parsed_llm_entities, f, ensure_ascii=False, indent=2)
     logging.info(f"Historical entities saved as: {output_historical_entities_file}")
 
 
@@ -232,10 +258,19 @@ def main():
     for transcription_txt_file in transcription_txt_files:
         # Start workflow for NER
         logging.info(f"Start processing {transcription_txt_file.name}")
-        unique_entities = ner_workflow(transcription_txt_file)
+        unique_entities, unique_entities_names = ner_workflow(transcription_txt_file)
+    
+        # Output entities as tab-separated CSV        
+        save_entities_csv(unique_entities, transcription_txt_file)
         
         # Start workflow for filtering historical entities via LLMs
-        filter_historical_entities(llm_pipeline, unique_entities, transcription_txt_file)
+        llm_entity_names = []
+        while set(unique_entities_names) != set(llm_entity_names):
+            parsed_llm_entities, llm_entity_names = filter_historical_entities(llm_pipeline, unique_entities, unique_entities_names)
+        
+        # Save the historical entities as JSON
+        save_historical_entities(parsed_llm_entities, transcription_txt_file)
+        
 
     # Clear the GPU memory and delete the pipeline
     torch.cuda.empty_cache()
