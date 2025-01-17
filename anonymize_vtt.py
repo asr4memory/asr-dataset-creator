@@ -3,6 +3,8 @@ import re
 from pathlib import Path
 from app_config import get_config
 import os
+import logging
+from utils import list_files, set_up_logging
 
 # Load the configuration
 config = get_config()["vtt_anonymization"]
@@ -10,26 +12,7 @@ config = get_config()["vtt_anonymization"]
 INPUT_DIR_VTT = Path(config["input_directory_vtt"])
 INPUT_DIR_JSON = Path(config["input_directory_json"])
 OUTPUT_DIR = Path(config["output_directory"])
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-def list_files(directory):
-    "Function to get the base name of the files up to the first underline."
-    files = {}
-    for filename in os.listdir(directory):
-        base_name = filename.split("_", 1)[0]
-        files[base_name] = filename
-    return files
-
-
-def get_input_files(INPUT_DIR_VTT, INPUT_DIR_JSON):
-    """
-    Validates that exactly one VTT file and one JSON file exist in the input directory.
-    """
-    vtt_files = list_files(INPUT_DIR_VTT)
-    json_files = list_files(INPUT_DIR_JSON)
-
-    return vtt_files, json_files
-
+LOGGING_DIRECTORY = Path(config["logging_directory"])
 
 def load_json(file_path):
     """
@@ -80,38 +63,51 @@ def save_vtt(content, output_path):
 
 def main():
     """Main function to execute the VTT anonymization process."""
-    # Validate input files
-    input_vtt_files, input_json_files = get_input_files(INPUT_DIR_VTT, INPUT_DIR_JSON)
+    # Set up logging
+    error_file_handler = set_up_logging(LOGGING_DIRECTORY)
+    logging.info("Starting VTT anonymization workflow.")
+
+    # List all VTT and JSON files in the input directories
+    input_vtt_files = list_files(INPUT_DIR_VTT)
+    input_json_files = list_files(INPUT_DIR_JSON)
 
     for vtt_base, vtt_filename in input_vtt_files.items():
+        try:
+            logging.info(f"Processing file: {vtt_filename}")
 
-        if vtt_base not in input_json_files:
+            if vtt_base not in input_json_files:
+                continue
+
+            if vtt_filename == ".DS_Store":
+                continue
+
+            # Construct complete path to the files:
+            input_vtt_file = INPUT_DIR_VTT / vtt_filename
+            input_json_file = INPUT_DIR_JSON / input_json_files[vtt_base]   
+
+            # Load JSON and extract words to anonymize
+            words_to_anonymize = load_json(input_json_file)
+            logging.info(f"Words to anonymize: {words_to_anonymize}")
+
+            # Load VTT file content
+            vtt_content = load_vtt(input_vtt_file)
+
+            # Apply replacements
+            replacements = config.get("vtt_replacements", [])
+            vtt_content = apply_replacements(vtt_content, replacements)
+
+            # Anonymize words
+            vtt_content = anonymize_words(vtt_content, words_to_anonymize)
+
+            # Save the modified VTT content
+            output_vtt_file = OUTPUT_DIR / f"{input_vtt_file.stem}_anonymized.vtt"
+            save_vtt(vtt_content, output_vtt_file)
+        except Exception as e:
+            logger = logging.getLogger()
+            logger.addHandler(error_file_handler)
+            logging.error(f"Error processing file {vtt_filename}: {e}")
+            logger.removeHandler(error_file_handler)
             continue
-
-        if vtt_filename == ".DS_Store":
-            continue
-
-        # Construct complete path to the files:
-        input_vtt_file = INPUT_DIR_VTT / vtt_filename
-        input_json_file = INPUT_DIR_JSON / input_json_files[vtt_base]   
-
-        # Load JSON and extract words to anonymize
-        words_to_anonymize = load_json(input_json_file)
-        print(f"Words to anonymize: {words_to_anonymize}")
-
-        # Load VTT file content
-        vtt_content = load_vtt(input_vtt_file)
-
-        # Apply replacements
-        replacements = config.get("vtt_replacements", [])
-        vtt_content = apply_replacements(vtt_content, replacements)
-
-        # Anonymize words
-        vtt_content = anonymize_words(vtt_content, words_to_anonymize)
-
-        # Save the modified VTT content
-        output_vtt_file = OUTPUT_DIR / f"{input_vtt_file.stem}_anonymized.vtt"
-        save_vtt(vtt_content, output_vtt_file)
 
 
 if __name__ == "__main__":

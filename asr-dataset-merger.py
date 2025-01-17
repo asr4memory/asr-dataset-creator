@@ -3,6 +3,8 @@ from pathlib import Path
 import shutil
 from tqdm import tqdm
 from app_config import get_config
+import logging
+from utils import set_up_logging
 
 # Load the configuration
 config = get_config()["dataset_merger"]
@@ -60,14 +62,26 @@ def append_to_metadata(file_name, transcription):
 
 def merge_datasets():
     """Main function for the merging of datasets."""
+    # Set up logging
+    error_file_handler = set_up_logging(OUTPUT_FOLDER)
+    logging.info("Starting dataset merging.")
+    
     setup_output_structure()
     initialize_metadata_file()
 
     for dataset_path in DATASETS_FOLDER.iterdir():
-        if dataset_path.is_dir():
-            process_dataset(dataset_path)
+        try:
+            logging.info(f"Processing dataset: {dataset_path.name}")
+            if dataset_path.is_dir():
+                process_dataset(dataset_path)
+        except Exception as e:
+            logger = logging.getLogger()
+            logger.addHandler(error_file_handler)
+            logging.error(f"Error processing dataset {dataset_path}: {e}")
+            logger.removeHandler(error_file_handler)
+            continue
 
-    print("Datasets have been successfully merged.")
+    logging.info("Dataset merging completed.")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,20 @@
+[log]
+logging_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/logs"
+
+[vtt_to_txt]
+input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_to_txt/_input"
+output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_to_txt/_output"
+
+[ner_workflow]
+input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/ner_workflow/_input"
+output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/ner_workflow/_output" 
+ner_batch_size = 15
+ner_threshold = 0.7
+llm_max_new_tokens = 10000
+
 [vtt_anonymization]
-input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_anonymization/_input/"
+input_directory_vtt = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_anonymization/_input_vtt"
+input_directory_json = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_anonymization/_input_json"
 output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_anonymization/_output/"
 
 vtt_replacements = [
@@ -15,7 +30,8 @@ vtt_replacements = [
 ]
 
 [dataset_creator]
-input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_creator/_input/"
+input_directory_vtt = "/Users/ahenderson/Documents/Whisper_Test_Files/_input_vtt"
+input_directory_wav = "/Users/ahenderson/Documents/Whisper_Test_Files/_input_wav"
 output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_creator/_output/"
 sample_rate = "16000"
 offset = -0.075

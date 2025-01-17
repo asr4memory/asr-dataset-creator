@@ -9,6 +9,7 @@ import transformers
 import torch
 from app_config import get_config
 import gc
+from utils import set_up_logging
 
 """
 To-Do:
@@ -25,13 +26,22 @@ config = get_config()["ner_workflow"]
 
 INPUT_DIR = Path(config["input_directory"])
 OUTPUT_DIR = Path(config["output_directory"])
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+LOGGING_DIRECTORY = Path(config["logging_directory"])
 
 batch_size = config["ner_batch_size"]
 threshold = config["ner_threshold"]
 max_new_tokens = config["llm_max_new_tokens"]
 
-def ner_workflow(transcription_txt_file):
+def load_gliner_model():
+    """
+    Load the GLiNER model
+    """
+    # model = GLiNER.from_pretrained("urchade/gliner_multi-v2.1")
+    model = GLiNER.from_pretrained("urchade/gliner_multi_pii-v1")
+
+    return model
+
+def ner_workflow(transcription_txt_file, model):
     """
     Perform Named Entity Recognition (NER) on the transcription
     """
@@ -43,11 +53,8 @@ def ner_workflow(transcription_txt_file):
     # Split transcription text into lines
     lines = transcription_text.splitlines()
 
-    # Initialize GLiNER with the base model
-    model = GLiNER.from_pretrained("urchade/gliner_multi-v2.1")
-
     # Labels for entity prediction
-    labels = ["Person names", "Residential address"]
+    labels = ["person", "residential address"]
 
     # Variable to hold all predicted entities
     entities = []
@@ -118,14 +125,14 @@ def save_entities_csv(unique_entities, transcription_txt_file):
     output_entities_file = OUTPUT_DIR / f"{transcription_txt_file.stem}_entities_batch_size={batch_size}.csv"
     with open(output_entities_file, "w", encoding="utf-8") as file:
         # Write header
-        file.write("entity name\tentity type\n")
+        file.write("entity name\tentity type\tscore\n")
         # Write each entity in tab-separated format
         for entity in unique_entities:
-            file.write(f"{entity['text']}\t{entity['label']}\n")
+            file.write(f"{entity['text']}\t{entity['label']}\t{entity['score']}\n")
     logging.info(f"Entities saved as: {output_entities_file}")
 
 
-def load_model():
+def load_llm_model():
     """
     Load the LLM model
     """
@@ -244,32 +251,42 @@ def main():
     Main function to execute the NER and filtering workflow.
     """
     # Set up logging
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    logging.captureWarnings(True)
+    error_file_handler = set_up_logging(LOGGING_DIRECTORY)
+    logging.info("Starting NER and filtering workflow.")
 
     # Search for text files (automated transcriptions) in the input directory
     transcription_txt_files = list(INPUT_DIR.glob("*.txt"))
     logging.info(f"Found transcription files: {transcription_txt_files}")
 
+    # Load the GLiNER model
+    gliner_model = load_gliner_model()
+
     # Load the LLM model
-    llm_pipeline = load_model()
+    llm_pipeline = load_llm_model()
 
     # Start the workflow for NER and filtering historical entities
     for transcription_txt_file in transcription_txt_files:
-        # Start workflow for NER
-        logging.info(f"Start processing {transcription_txt_file.name}")
-        unique_entities, unique_entities_names = ner_workflow(transcription_txt_file)
-    
-        # Output entities as tab-separated CSV        
-        save_entities_csv(unique_entities, transcription_txt_file)
+        try:
+            # Start workflow for NER
+            logging.info(f"Start processing {transcription_txt_file.name}")
+            unique_entities, unique_entities_names = ner_workflow(transcription_txt_file, gliner_model)
         
-        # Start workflow for filtering historical entities via LLMs
-        llm_entity_names = []
-        while set(unique_entities_names) != set(llm_entity_names):
-            parsed_llm_entities, llm_entity_names = filter_historical_entities(llm_pipeline, unique_entities, unique_entities_names)
-        
-        # Save the historical entities as JSON
-        save_historical_entities(parsed_llm_entities, transcription_txt_file)
+            # Output entities as tab-separated CSV        
+            save_entities_csv(unique_entities, transcription_txt_file)
+            
+            # Start workflow for filtering historical entities via LLMs
+            llm_entity_names = []
+            while set(unique_entities_names) != set(llm_entity_names):
+                parsed_llm_entities, llm_entity_names = filter_historical_entities(llm_pipeline, unique_entities, unique_entities_names)
+            
+            # Save the historical entities as JSON
+            save_historical_entities(parsed_llm_entities, transcription_txt_file)
+        except Exception as e:
+            logger = logging.getLogger()
+            logger.addHandler(error_file_handler)
+            logging.error(f"Error processing file {transcription_txt_file.name}: {e}")
+            logger.removeHandler(error_file_handler)
+            continue
         
 
     # Clear the GPU memory and delete the pipeline

@@ -42,6 +42,10 @@ def initialize_config():
                 **CONST_DEFAULT_CONFIG["dataset_test"],
                 **data.get("dataset_test", {}),
             }
+            combined_config["logging"] = {
+                **CONST_DEFAULT_CONFIG["logging"],
+                **data.get("logging", {}),
+            }
 
     except FileNotFoundError:
         print("config.toml not found. Using default configuration.")

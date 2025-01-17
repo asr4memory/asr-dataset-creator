@@ -5,6 +5,9 @@ if present.
 """
 
 CONST_DEFAULT_CONFIG = {
+    "logging": {
+        "logging_directory": "",
+    },    
     "vtt_to_txt": {
         "input_directory": "",
         "output_directory": "",
@@ -23,7 +26,8 @@ CONST_DEFAULT_CONFIG = {
         "vtt_replacements": [], 
     },
     "dataset_creator": {
-        "input_directory": "",
+        "input_directory_vtt": "",
+        "input_directory_wav": "",
         "output_directory": "",
         "sample_rate": "16000",
         "offset": 0.075,

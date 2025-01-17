@@ -5,15 +5,18 @@ import subprocess
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 from app_config import get_config
+from utils import list_files, set_up_logging
+import logging
 
 # Load the configuration
 config = get_config()["dataset_creator"]
 
-INPUT_FOLDER = Path(config["input_directory"])
+INPUT_FOLDER_VTT = Path(config["input_directory_vtt"])
+INPUT_FOLDER_WAV = Path(config["input_directory_wav"])
 OUTPUT_FOLDER = Path(config["output_directory"])
+LOGGING_DIRECTORY = Path(config["logging_directory"])
 SAMPLE_RATE = config["sample_rate"]
 OFFSET = config["offset"]
-
 
 def parse_vtt_file(vtt_file):
     """Parse the VTT file and extract segments with start, end times, and text."""
@@ -72,42 +75,64 @@ def process_segment(args):
 
 
 def main():
-    # Verify and locate input files
-    wav_files = list(INPUT_FOLDER.glob('*.wav'))
-    vtt_files = list(INPUT_FOLDER.glob('*.vtt'))
-    if len(wav_files) != 1 or len(vtt_files) != 1:
-        raise ValueError("There must be exactly one WAV and one VTT file in the input folder.")
+    """Main function to execute the audio segment creation process."""
+    # Set up logging
+    error_file_handler = set_up_logging(LOGGING_DIRECTORY)
+    logging.info("Starting dataset creation workflow.")
 
-    audio_file = wav_files[0]
-    vtt_file = vtt_files[0]
-    audio_filename_stem = audio_file.stem
+    # List all VTT and WAV files in the input directories
+    input_vtt_files = list_files(INPUT_FOLDER_VTT, '.vtt')
+    input_wav_files = list_files(INPUT_FOLDER_WAV, '.wav')
 
-    # Prepare output structure and load existing metadata entries
-    data_folder, metadata_file = setup_output_structure(OUTPUT_FOLDER, audio_filename_stem)
-    existing_files = load_existing_metadata(metadata_file)
-    vtt_segments = parse_vtt_file(vtt_file)
+    for wav_base, wav_filename in input_wav_files.items():
+        try:
+            logging.info(f"Processing file: {wav_filename}")
 
-    # Prepare tasks for parallel processing
-    tasks = [
-        ((i, segment), audio_file, data_folder, OUTPUT_FOLDER, audio_filename_stem)
-        for i, segment in enumerate(vtt_segments)
-        if f"{audio_filename_stem}_audio_segment_{i+1}.wav" not in existing_files
-    ]
+            if wav_base not in input_vtt_files:
+                continue
 
-    # Process segments in parallel
-    print("Start processing audio segments...")
-    with Pool(processes=cpu_count()) as pool:
-        results = list(tqdm(pool.imap_unordered(process_segment, tasks), total=len(tasks),
-                            desc="Processing audio segments", unit="segment"))
+            if wav_filename == ".DS_Store":
+                continue
 
-    # Write new metadata entries
-    with metadata_file.open(mode='a', newline='', encoding='utf-8') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        if not existing_files:
-            csvwriter.writerow(["file_name", "transcription"])
-        csvwriter.writerows(result for result in results if result)
+            # Construct complete path to the files:
+            input_wav_file = INPUT_FOLDER_VTT / wav_filename
+            input_vtt_file = INPUT_FOLDER_WAV / input_wav_files[wav_base]   
 
-    print("Audio segments and metadata file have been successfully created.")
+            audio_filename_stem = input_wav_file.stem
+
+            # Prepare output structure and load existing metadata entries
+            data_folder, metadata_file = setup_output_structure(OUTPUT_FOLDER, audio_filename_stem)
+            existing_files = load_existing_metadata(metadata_file)
+            vtt_segments = parse_vtt_file(input_vtt_file)
+
+            # Prepare tasks for parallel processing
+            tasks = [
+                ((i, segment), input_wav_file, data_folder, OUTPUT_FOLDER, audio_filename_stem)
+                for i, segment in enumerate(vtt_segments)
+                if f"{audio_filename_stem}_audio_segment_{i+1}.wav" not in existing_files
+            ]
+
+            # Process segments in parallel
+            print("Start processing audio segments...")
+            with Pool(processes=cpu_count()) as pool:
+                results = list(tqdm(pool.imap_unordered(process_segment, tasks), total=len(tasks),
+                                    desc="Processing audio segments", unit="segment"))
+
+            # Write new metadata entries
+            with metadata_file.open(mode='a', newline='', encoding='utf-8') as csvfile:
+                csvwriter = csv.writer(csvfile)
+                if not existing_files:
+                    csvwriter.writerow(["file_name", "transcription"])
+                csvwriter.writerows(result for result in results if result)
+
+            logging.info(f"Dataset creation for {wav_filename} completed")
+                         
+        except Exception as e:
+            logger = logging.getLogger()
+            logger.addHandler(error_file_handler)
+            logging.error(f"Error processing file {wav_filename}: {e}")
+            logger.removeHandler(error_file_handler)
+            continue
 
 
 if __name__ == "__main__":

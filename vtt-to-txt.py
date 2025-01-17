@@ -2,7 +2,13 @@ from pathlib import Path
 import re
 import string
 from app_config import get_config
+import logging
+from utils import set_up_logging
 
+config = get_config()["vtt_to_txt"]
+INPUT_PATH = Path(config["input_directory"])
+OUTPUT_PATH = Path(config["output_directory"])
+LOGGING_DIRECTORY = Path(config["logging_directory"])
 
 def clean_vtt_content(content, remove_punctuation=False):
     "Cleans up VTT strings so that WER can be detected."
@@ -42,20 +48,28 @@ def clean_vtt_content(content, remove_punctuation=False):
     return result
 
 def run_on_directory():
-    "Run through all VTT files in the specified directory."
-    config = get_config()["vtt_to_txt"]
-    input_path = Path(config["input_directory"])
-    output_path = Path(config["output_directory"])
+    "Run through all VTT files in the specified directory."    
+    # Set up logging
+    error_file_handler = set_up_logging(LOGGING_DIRECTORY)
 
-    for filepath in input_path.glob("*.vtt"):
-        orig_stem = filepath.stem
-        vtt_content = filepath.read_text(encoding="utf-8")
+    logging.info("Starting VTT to TXT conversion.")
+    for filepath in INPUT_PATH.glob("*.vtt"):
+        try:
+            logging.info(f"Processing file: {filepath}")
+            orig_stem = filepath.stem
+            vtt_content = filepath.read_text(encoding="utf-8")
 
-        # Write cleaned up output file (first version).
-        cleaned_text = clean_vtt_content(vtt_content)
-        new_filepath = output_path / f"{orig_stem}.cleared.txt"
-        new_filepath.write_text(cleaned_text, encoding="utf-8")
-        print(f"Cleaned text was saved in: {new_filepath}")
+            # Write cleaned up output file (first version).
+            cleaned_text = clean_vtt_content(vtt_content)
+            new_filepath = OUTPUT_PATH / f"{orig_stem}.cleared.txt"
+            new_filepath.write_text(cleaned_text, encoding="utf-8")
+            print(f"Cleaned text was saved in: {new_filepath}")
+        except Exception as e:
+            logger = logging.getLogger()
+            logger.addHandler(error_file_handler)
+            logging.error(f"Error processing file {filepath}: {e}")
+            logger.removeHandler(error_file_handler)
+            continue
 
 if __name__ == "__main__":
     run_on_directory()
