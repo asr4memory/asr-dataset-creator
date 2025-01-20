@@ -1,6 +1,6 @@
 # asr-dataset-creator
 
-(HAS TO BE UPDATED)
+(README HAS TO BE UPDATED)
 
 This repository contains scripts and resources for preprocessing audiovisual Oral History data for training automatic speech recognition (ASR) models using Whisper from OpenAI. The workflows are optimized for the ASR4Memory project. 
 
