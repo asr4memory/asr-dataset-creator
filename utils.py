@@ -9,12 +9,11 @@ def list_files(directory):
         files[base_name] = filename
     return files
 
-def set_up_logging(logging_directory):
+def set_up_logging(logging_directory, logging_file_name):
     "Set up logging."
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     logging.captureWarnings(True)
-    logging.info("Starting NER and filtering workflow.")
-    error_file_handler = logging.FileHandler(logging_directory / "anonymize_vtt_errors.log")
+    error_file_handler = logging.FileHandler(logging_directory / logging_file_name)
     error_file_handler.setLevel(logging.ERROR)  # Nur Errors in die Datei schreiben
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     error_file_handler.setFormatter(formatter)

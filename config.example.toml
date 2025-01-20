@@ -1,4 +1,4 @@
-[log]
+[logging]
 logging_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/logs"
 
 [vtt_to_txt]

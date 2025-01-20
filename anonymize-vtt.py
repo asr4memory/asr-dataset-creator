@@ -8,11 +8,12 @@ from utils import list_files, set_up_logging
 
 # Load the configuration
 config = get_config()["vtt_anonymization"]
+config_logging = get_config()["logging"]
 
 INPUT_DIR_VTT = Path(config["input_directory_vtt"])
 INPUT_DIR_JSON = Path(config["input_directory_json"])
 OUTPUT_DIR = Path(config["output_directory"])
-LOGGING_DIRECTORY = Path(config["logging_directory"])
+LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
 
 def load_json(file_path):
     """
@@ -64,7 +65,8 @@ def save_vtt(content, output_path):
 def main():
     """Main function to execute the VTT anonymization process."""
     # Set up logging
-    error_file_handler = set_up_logging(LOGGING_DIRECTORY)
+    logging_file_name = "vtt_anonymization_errors.log"
+    error_file_handler = set_up_logging(LOGGING_DIRECTORY, logging_file_name)
     logging.info("Starting VTT anonymization workflow.")
 
     # List all VTT and JSON files in the input directories
@@ -73,8 +75,6 @@ def main():
 
     for vtt_base, vtt_filename in input_vtt_files.items():
         try:
-            logging.info(f"Processing file: {vtt_filename}")
-
             if vtt_base not in input_json_files:
                 continue
 
@@ -84,6 +84,9 @@ def main():
             # Construct complete path to the files:
             input_vtt_file = INPUT_DIR_VTT / vtt_filename
             input_json_file = INPUT_DIR_JSON / input_json_files[vtt_base]   
+
+            logging.info(f"Processing file: {input_vtt_file}")
+            logging.info(f"Matching JSON file: {input_json_file}")
 
             # Load JSON and extract words to anonymize
             words_to_anonymize = load_json(input_json_file)

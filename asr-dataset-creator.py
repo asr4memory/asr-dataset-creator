@@ -10,11 +10,12 @@ import logging
 
 # Load the configuration
 config = get_config()["dataset_creator"]
+config_logging = get_config()["logging"]
 
 INPUT_FOLDER_VTT = Path(config["input_directory_vtt"])
 INPUT_FOLDER_WAV = Path(config["input_directory_wav"])
 OUTPUT_FOLDER = Path(config["output_directory"])
-LOGGING_DIRECTORY = Path(config["logging_directory"])
+LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
 SAMPLE_RATE = config["sample_rate"]
 OFFSET = config["offset"]
 
@@ -77,17 +78,16 @@ def process_segment(args):
 def main():
     """Main function to execute the audio segment creation process."""
     # Set up logging
-    error_file_handler = set_up_logging(LOGGING_DIRECTORY)
+    logging_file_name = "create_dataset_errors.log"
+    error_file_handler = set_up_logging(LOGGING_DIRECTORY, logging_file_name)
     logging.info("Starting dataset creation workflow.")
 
     # List all VTT and WAV files in the input directories
-    input_vtt_files = list_files(INPUT_FOLDER_VTT, '.vtt')
-    input_wav_files = list_files(INPUT_FOLDER_WAV, '.wav')
+    input_vtt_files = list_files(INPUT_FOLDER_VTT)
+    input_wav_files = list_files(INPUT_FOLDER_WAV)
 
     for wav_base, wav_filename in input_wav_files.items():
         try:
-            logging.info(f"Processing file: {wav_filename}")
-
             if wav_base not in input_vtt_files:
                 continue
 
@@ -95,8 +95,11 @@ def main():
                 continue
 
             # Construct complete path to the files:
-            input_wav_file = INPUT_FOLDER_VTT / wav_filename
-            input_vtt_file = INPUT_FOLDER_WAV / input_wav_files[wav_base]   
+            input_wav_file = INPUT_FOLDER_WAV / wav_filename
+            input_vtt_file = INPUT_FOLDER_VTT / input_vtt_files[wav_base]
+
+            logging.info(f"Processing file: {input_wav_file.name}")
+            logging.info(f"Matching VTT file: {input_vtt_file.name}")
 
             audio_filename_stem = input_wav_file.stem
 
@@ -113,7 +116,7 @@ def main():
             ]
 
             # Process segments in parallel
-            print("Start processing audio segments...")
+            logging.info(f"Processing audio segments for {wav_filename}")
             with Pool(processes=cpu_count()) as pool:
                 results = list(tqdm(pool.imap_unordered(process_segment, tasks), total=len(tasks),
                                     desc="Processing audio segments", unit="segment"))

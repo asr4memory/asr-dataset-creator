@@ -8,6 +8,7 @@ from utils import set_up_logging
 
 # Load the configuration
 config = get_config()["dataset_merger"]
+config_logging = get_config()["logging"]
 
 DATASETS_FOLDER = Path(config["input_directory"])
 OUTPUT_FOLDER = Path(config["output_directory"])
@@ -15,6 +16,7 @@ MERGED_DATASET_NAME = config["merged_dataset_name"]
 MERGED_DATASET_FOLDER = OUTPUT_FOLDER / MERGED_DATASET_NAME
 OUTPUT_DATA_FOLDER = MERGED_DATASET_FOLDER/ 'data'
 OUTPUT_METADATA_FILE = MERGED_DATASET_FOLDER/ 'metadata.csv'
+LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
 
 
 def setup_output_structure():
@@ -63,7 +65,8 @@ def append_to_metadata(file_name, transcription):
 def merge_datasets():
     """Main function for the merging of datasets."""
     # Set up logging
-    error_file_handler = set_up_logging(OUTPUT_FOLDER)
+    logging_file_name = "merge_datasets_erros.log"
+    error_file_handler = set_up_logging(LOGGING_DIRECTORY, logging_file_name)
     logging.info("Starting dataset merging.")
     
     setup_output_structure()

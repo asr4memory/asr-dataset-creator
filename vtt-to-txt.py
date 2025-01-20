@@ -6,9 +6,10 @@ import logging
 from utils import set_up_logging
 
 config = get_config()["vtt_to_txt"]
+config_logging = get_config()["logging"]
 INPUT_PATH = Path(config["input_directory"])
 OUTPUT_PATH = Path(config["output_directory"])
-LOGGING_DIRECTORY = Path(config["logging_directory"])
+LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
 
 def clean_vtt_content(content, remove_punctuation=False):
     "Cleans up VTT strings so that WER can be detected."
@@ -50,7 +51,8 @@ def clean_vtt_content(content, remove_punctuation=False):
 def run_on_directory():
     "Run through all VTT files in the specified directory."    
     # Set up logging
-    error_file_handler = set_up_logging(LOGGING_DIRECTORY)
+    logging_file_name = "vtt_to_txt_errors.log"
+    error_file_handler = set_up_logging(LOGGING_DIRECTORY, logging_file_name)
 
     logging.info("Starting VTT to TXT conversion.")
     for filepath in INPUT_PATH.glob("*.vtt"):
@@ -63,7 +65,7 @@ def run_on_directory():
             cleaned_text = clean_vtt_content(vtt_content)
             new_filepath = OUTPUT_PATH / f"{orig_stem}.cleared.txt"
             new_filepath.write_text(cleaned_text, encoding="utf-8")
-            print(f"Cleaned text was saved in: {new_filepath}")
+            logging.info(f"Cleaned up file written to: {new_filepath}")
         except Exception as e:
             logger = logging.getLogger()
             logger.addHandler(error_file_handler)

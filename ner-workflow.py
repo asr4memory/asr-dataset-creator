@@ -23,10 +23,11 @@ To-Do:
 
 # Load the configuration
 config = get_config()["ner_workflow"]
+config_logging = get_config()["logging"]
 
 INPUT_DIR = Path(config["input_directory"])
 OUTPUT_DIR = Path(config["output_directory"])
-LOGGING_DIRECTORY = Path(config["logging_directory"])
+LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
 
 batch_size = config["ner_batch_size"]
 threshold = config["ner_threshold"]
@@ -96,6 +97,9 @@ def ner_workflow(transcription_txt_file, model):
             logging.warning(f"{warning.message}")
     else:
         logging.info("No warnings occurred during the process.")
+    
+    # Remove common wrongly recognized entities from unique_entities list
+    blacklist = {"sie", "er", "wir", "ich", "du", "ihr", "mein vater", "meine mutter", "meinem vater", "meiner mutter", "meine tochter", "mein sohn", "meiner tochter", "meinem sohn", "mein bruder", "meine schwester", "meinem bruder", "meiner schwester", "mein onkel", "meine tante", "meinem onkel", "meiner tante", "mein opa", "meine oma", "meinem opa", "meiner oma", "mein vetter", "meine cousine", "meinem vetter", "meiner cousine", "mein neffe", "meine nichte", "meinem neffe", "meiner nichte", "mein enkel", "meine enkelin", "meinem enkel", "meiner enkelin", "mein schwager", "meine schwägerin", "meinem schwager", "meiner schwägerin", "mein schwiegersohn", "meine schwiegertochter", "meinem schwiegersohn", "meiner schwiegertochter", "mein schwiegervater", "meine schwiegermutter", "meinem schwiegervater", "meiner schwiegermutter", "mein schwiegersohn", "meine schwiegertochter", "meinem schwiegersohn", "meiner schwiegertochter", "mein schwiegervater", "meine schwiegermutter", "meinem schwiegervater", "meiner schwiegermutter", "mein schwiegersohn", "meine schwiegertochter", "meinem schwiegersohn", "meiner schwiegertochter", "mein schwiegervater", "meine schwiegermutter", "meinem schwiegervater", "meiner schwiegermutter", "mein schwiegersohn", "meine schwiegertochter", "meinem schwiegersohn", "meiner schwiegertochter", "mein schwiegervater", "meine schwiegermutter", "meinem schwiegervater", "meiner schwiegermutter", "mein schwiegersohn", "meine schwiegertochter", "meinem schwiegersohn", "meiner schwiegertochter", "mein schwiegervater", "meine frau", "meiner frau", "mein mann" "meinem mann", "mann", "frau", "mich", "dich", "ihm", "ihr", "ihnen", "papa", "mama", "herr", "sohn", "tochter"}
 
     # Remove duplicates from the entities list
     unique_entities = []
@@ -103,6 +107,10 @@ def ner_workflow(transcription_txt_file, model):
     unique_entities_names= []
 
     for entity in entities:
+        # Skip entities in the blacklist
+        if entity["text"].lower() in blacklist:
+            continue
+
         # Use a tuple of text and label as the identifier for uniqueness
         identifier = (entity["text"], entity["label"])
 
@@ -251,7 +259,8 @@ def main():
     Main function to execute the NER and filtering workflow.
     """
     # Set up logging
-    error_file_handler = set_up_logging(LOGGING_DIRECTORY)
+    logging_file_name = "ner_workflow_errors.log"
+    error_file_handler = set_up_logging(LOGGING_DIRECTORY, logging_file_name)
     logging.info("Starting NER and filtering workflow.")
 
     # Search for text files (automated transcriptions) in the input directory
@@ -275,9 +284,18 @@ def main():
             save_entities_csv(unique_entities, transcription_txt_file)
             
             # Start workflow for filtering historical entities via LLMs
+            trials = 0
             llm_entity_names = []
-            while set(unique_entities_names) != set(llm_entity_names):
+            while set(unique_entities_names) != set(llm_entity_names) and trials < 5:
                 parsed_llm_entities, llm_entity_names = filter_historical_entities(llm_pipeline, unique_entities, unique_entities_names)
+                trials += 1
+            
+            if trials == 5:
+                logger = logging.getLogger()
+                logger.addHandler(error_file_handler)
+                logging.error(f"Failed to get the same entities from the LLM for {transcription_txt_file.name} after {trials} trials.")
+                logger.removeHandler(error_file_handler)
+                continue
             
             # Save the historical entities as JSON
             save_historical_entities(parsed_llm_entities, transcription_txt_file)
