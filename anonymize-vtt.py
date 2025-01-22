@@ -20,7 +20,7 @@ def load_json(file_path):
     Loads the anonymized JSON file and processes it.
     """
     df = pd.read_json(file_path, encoding="utf-8")
-    words_to_anonymize = df[df['is_historical'] == False]['entity_name'].tolist()
+    words_to_anonymize = df[(df['is_historical'] == False) & (df['is_real_name'] == True) | (df['is_real_adress'] == True)]['entity_name'].tolist()
     return list(words_to_anonymize) 
 
 

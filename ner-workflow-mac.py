@@ -18,8 +18,9 @@ To-Do:
 - Compare number of entities in CSV and JSON files --> CHECK
 - If there are entites missing in the JSON file, add them from the CSV file with historical flag set to false --> CHECK
 - Other Option: Retry LLM filtering until all entities are present in the JSON file (maybe with another temperature value???) --> CHECK
-- Remove common wrongly recognized entities from unique_entities list 
-- Try running Llama-3.3-70B-Instruct model
+- Remove common wrongly recognized entities from unique_entities list  --> CHECK
+- Try running Llama-3.3-70B-Instruct model --> CHECK
+- Automatically add false names to blacklist? --> CHECK (but robust?)
 """
 
 # Load the configuration
@@ -100,7 +101,9 @@ def ner_workflow(transcription_txt_file, model):
         logging.info("No warnings occurred during the process.")
     
     # Remove common wrongly recognized entities from unique_entities list
-    blacklist = {"sie", "er", "wir", "ich", "du", "ihr", "mein vater", "meine mutter", "meinem vater", "meiner mutter", "meine tochter", "mein sohn", "meiner tochter", "meinem sohn", "mein bruder", "meine schwester", "meinem bruder", "meiner schwester", "mein onkel", "meine tante", "meinem onkel", "meiner tante", "mein opa", "meine oma", "meinem opa", "meiner oma", "mein vetter", "meine cousine", "meinem vetter", "meiner cousine", "mein neffe", "meine nichte", "meinem neffe", "meiner nichte", "mein enkel", "meine enkelin", "meinem enkel", "meiner enkelin", "mein schwager", "meine schwägerin", "meinem schwager", "meiner schwägerin", "mein schwiegersohn", "meine schwiegertochter", "meinem schwiegersohn", "meiner schwiegertochter", "mein schwiegervater", "meine schwiegermutter", "meinem schwiegervater", "meiner schwiegermutter", "mein schwiegersohn", "meine schwiegertochter", "meinem schwiegersohn", "meiner schwiegertochter", "mein schwiegervater", "meine schwiegermutter", "meinem schwiegervater", "meiner schwiegermutter", "mein schwiegersohn", "meine schwiegertochter", "meinem schwiegersohn", "meiner schwiegertochter", "mein schwiegervater", "meine schwiegermutter", "meinem schwiegervater", "meiner schwiegermutter", "mein schwiegersohn", "meine schwiegertochter", "meinem schwiegersohn", "meiner schwiegertochter", "mein schwiegervater", "meine schwiegermutter", "meinem schwiegervater", "meiner schwiegermutter", "mein schwiegersohn", "meine schwiegertochter", "meinem schwiegersohn", "meiner schwiegertochter", "mein schwiegervater", "meine frau", "meiner frau", "mein mann" "meinem mann", "mann", "frau", "mich", "dich", "ihm", "ihr", "ihnen", "papa", "mama", "herr", "sohn", "tochter"}
+    with open('./blacklist.txt', 'r', encoding='utf-8') as file:
+        content = file.read().strip()
+        blacklist = {word.strip() for word in content.split(',')}
 
     # Remove duplicates from the entities list
     unique_entities = []
@@ -156,12 +159,16 @@ def filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique
     # Define the prompt for the LLM
     prompt = (
         "Du erhältst eine Liste von Entitäten (Personen und Adressen), die per Named Entity Recognition erkannt wurden. "
-        "Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt, und gib die Antwort ausschließlich im JSON-Format zurück. "
+        "1) Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt, und gib die Antwort ausschließlich im JSON-Format zurück. "
+        "2) Bitte prüfe, bei welchen Personen es sich um richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Bei dem Entitätentyp 'residential address' sollte in diesem Fall der Wert immer 'false' sein. "
+        "3) Bitte prüfe, bei welchen Adressen es sich um richtige Adressen (Straße mit Hausnummer) handelt. Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein."
         "Jede Entität sollte als ein Objekt im folgenden Format dargestellt werden:\n"
         "{\n"
         '  "entity_name": "<Name der Entität>",\n'
         '  "entity_type": "<Typ der Entität>",\n'
         '  "is_historical": true/false\n'
+        '  "is_real_name": true/false\n'
+        '  "is_real_address": true/false\n'
         "}\n"
         "Gib ausschließlich gültiges JSON zurück. Keine zusätzlichen Kommentare oder Erklärungen.\n"
     )
@@ -204,6 +211,12 @@ def filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique
             logging.info("Success: The gliner and LLM outputs contain the same entites")
         else:
             logging.warning("Warning: The gliner and LLM outputs do not contain the same entites. Retrying the LLM filtering process.")
+    
+    # # Add entities with is_real_name: false to blacklist
+    # with open('./blacklist.txt', 'a', encoding='utf-8') as file:
+    #     for entity in parsed_llm_entities:
+    #         if (entity["is_real_name"] == False) and (entity["entity_type"] == "person"):
+    #             file.write(entity["entity_name"].lower() + ", ")
 
     return parsed_llm_entities, llm_entity_names
 
