@@ -26,7 +26,8 @@ vtt_replacements = [
   { pattern = "(?:.*\\n){3}.*\\(\\.\\.\\.\\?\\).*", replacement = "" },
   { pattern = "\\(", replacement = "" },
   { pattern = "\\?\\)", replacement = "" },
-  { pattern = "\\n{3,}", replacement = "\\n\\n" }
+  { pattern = "\\n{3,}", replacement = "\\n\\n" },
+  { pattern = "(?:.*\\n){0,3}.*\\bXXX\\b.*\\n?", replacement = "" }
 ]
 
 [dataset_creator]

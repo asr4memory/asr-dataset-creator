@@ -86,7 +86,7 @@ def main():
     input_vtt_files = list_files(INPUT_FOLDER_VTT)
     input_wav_files = list_files(INPUT_FOLDER_WAV)
 
-    for wav_base, wav_filename in input_wav_files.items():
+    for wav_base, wav_filename in tqdm(input_wav_files.items(), desc="Processing audio files", unit="file"):
         try:
             if wav_base not in input_vtt_files:
                 continue

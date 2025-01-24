@@ -5,6 +5,7 @@ from app_config import get_config
 import os
 import logging
 from utils import list_files, set_up_logging
+from tqdm import tqdm
 
 # Load the configuration
 config = get_config()["vtt_anonymization"]
@@ -20,7 +21,7 @@ def load_json(file_path):
     Loads the anonymized JSON file and processes it.
     """
     df = pd.read_json(file_path, encoding="utf-8")
-    words_to_anonymize = df[(df['is_historical'] == False) & (df['is_real_name'] == True) | (df['is_real_adress'] == True)]['entity_name'].tolist()
+    words_to_anonymize = df[(df['is_historical'] == False) & (df['is_real_name'] == True) | (df['is_real_address'] == True)]['entity_name'].tolist()
     return list(words_to_anonymize) 
 
 
@@ -73,7 +74,7 @@ def main():
     input_vtt_files = list_files(INPUT_DIR_VTT)
     input_json_files = list_files(INPUT_DIR_JSON)
 
-    for vtt_base, vtt_filename in input_vtt_files.items():
+    for vtt_base, vtt_filename in tqdm(input_vtt_files.items(), desc="Processing VTT files", unit="file"):
         try:
             if vtt_base not in input_json_files:
                 continue

@@ -101,9 +101,8 @@ def ner_workflow(transcription_txt_file, model):
         logging.info("No warnings occurred during the process.")
     
     # Remove common wrongly recognized entities from unique_entities list
-    with open('./blacklist.txt', 'r', encoding='utf-8') as file:
-        content = file.read().strip()
-        blacklist = {word.strip() for word in content.split(',')}
+    with open('./data/blacklist.txt', 'r', encoding='utf-8') as file:
+        blacklist = {line.strip().lower() for line in file if line.strip()}
 
     # Remove duplicates from the entities list
     unique_entities = []
@@ -126,7 +125,6 @@ def ner_workflow(transcription_txt_file, model):
     logging.info(f"Total number of found entities before deletion of duplicates: {len(entities)}")
     logging.info(f"Total number of found entities after deletion of duplicates: {len(unique_entities)}")  
 
-    # Output entities as tab-separated CSV
 
     return unique_entities, unique_entities_names
 
@@ -152,15 +150,16 @@ def load_llm_model():
     return model, tokenizer
 
 
-def filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique_entities_names):
+def filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique_entities_names, trials):
     """
     Filter historical entities using a large language model
     """
+    sym_diff = set()
     # Define the prompt for the LLM
     prompt = (
         "Du erhältst eine Liste von Entitäten (Personen und Adressen), die per Named Entity Recognition erkannt wurden. "
         "1) Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt, und gib die Antwort ausschließlich im JSON-Format zurück. "
-        "2) Bitte prüfe, bei welchen Personen es sich um richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Bei dem Entitätentyp 'residential address' sollte in diesem Fall der Wert immer 'false' sein. "
+        "2) Bitte prüfe, bei welchen Personen es sich um richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'residential address' sollte in diesem Fall der Wert immer 'false' sein. "
         "3) Bitte prüfe, bei welchen Adressen es sich um richtige Adressen (Straße mit Hausnummer) handelt. Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein."
         "Jede Entität sollte als ein Objekt im folgenden Format dargestellt werden:\n"
         "{\n"
@@ -186,9 +185,9 @@ def filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique
 
 
     # Generate the output using the LLM
-    logging.info("Starting the filtering process with the LLM.")
-    response = generate(llm_model, llm_tokenizer, prompt=prompt, verbose=True, max_tokens=10000)
-    print(response)
+    logging.info(f"Starting the filtering process with the LLM. Trial: {trials}")
+    response = generate(llm_model, llm_tokenizer, prompt=prompt, verbose=False, max_tokens=10000)
+    # print(response)
 
     # Parse the assistant content as JSON
     try:
@@ -209,16 +208,17 @@ def filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique
         
         if set(unique_entities_names) == set(llm_entity_names):
             logging.info("Success: The gliner and LLM outputs contain the same entites")
+            # Add entities with is_real_name: false to blacklist
+            with open('./data/blacklist.txt', 'a', encoding='utf-8') as file:
+                for entity in parsed_llm_entities:
+                    if (entity["is_real_name"] == False) and (entity["entity_type"] == "person"):
+                        file.write(f"{entity['entity_name'].lower()}\n") 
         else:
             logging.warning("Warning: The gliner and LLM outputs do not contain the same entites. Retrying the LLM filtering process.")
-    
-    # # Add entities with is_real_name: false to blacklist
-    # with open('./blacklist.txt', 'a', encoding='utf-8') as file:
-    #     for entity in parsed_llm_entities:
-    #         if (entity["is_real_name"] == False) and (entity["entity_type"] == "person"):
-    #             file.write(entity["entity_name"].lower() + ", ")
+            sym_diff = set(llm_entity_names).symmetric_difference(set(unique_entities_names))
+            logging.warning("Different elements:", sym_diff)
 
-    return parsed_llm_entities, llm_entity_names
+    return parsed_llm_entities, llm_entity_names, sym_diff
 
 
 def save_historical_entities(parsed_llm_entities, transcription_txt_file):
@@ -249,7 +249,7 @@ def main():
     llm_model, llm_tokenizer = load_llm_model()
 
     # Start the workflow for NER and filtering historical entities
-    for transcription_txt_file in transcription_txt_files:
+    for transcription_txt_file in tqdm(transcription_txt_files, desc="Processed transcription files", unit="file"):
         try:
             # Start workflow for NER
             logging.info(f"Start processing {transcription_txt_file.name}")
@@ -259,13 +259,17 @@ def main():
             save_entities_csv(unique_entities, transcription_txt_file)
             
             # Start workflow for filtering historical entities via LLMs
-            trials = 0
+            trials = 1
             llm_entity_names = []
-            while set(unique_entities_names) != set(llm_entity_names) and trials < 5:
-                parsed_llm_entities, llm_entity_names = filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique_entities_names)
+            while set(unique_entities_names) != set(llm_entity_names) and trials <= 2:
+                parsed_llm_entities, llm_entity_names, sym_diff = filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique_entities_names, trials)
                 trials += 1
+                if sym_diff:
+                    with open('./data/found_diffs.txt', 'a', encoding='utf-8') as file:
+                        file.write(f"File: {transcription_txt_file.name}, Trial: {trials}, Different elements: {sym_diff}\n")
+                    sym_diff.clear()
             
-            if trials == 5:
+            if trials == 3:
                 logger = logging.getLogger()
                 logger.addHandler(error_file_handler)
                 logging.error(f"Failed to get the same entities from the LLM for {transcription_txt_file.name} after {trials} trials.")
