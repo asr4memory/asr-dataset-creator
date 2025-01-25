@@ -74,6 +74,19 @@ def main():
     input_vtt_files = list_files(INPUT_DIR_VTT)
     input_json_files = list_files(INPUT_DIR_JSON)
 
+    len_matchings = len(set(input_vtt_files.keys()).intersection(set(input_json_files.keys())))
+    logging.info(f"Found {len_matchings} matching VTT and JSON files.")
+
+    not_matching_vtt = set(input_vtt_files.keys()).difference(set(input_json_files.keys()))
+    if not_matching_vtt:
+        logging.warning(f"Found {len(not_matching_vtt)} VTT files without matching WAV files.")
+        logging.warning(f"VTT files without matching WAV files: {not_matching_vtt}")
+
+    not_matching_wav = set(input_json_files.keys()).difference(set(input_vtt_files.keys()))
+    if not_matching_wav:
+        logging.warning(f"Found {len(not_matching_wav)} JSON files without matching VTT files.")
+        logging.warning(f"JSON files without matching VTT files: {not_matching_wav}")
+
     for vtt_base, vtt_filename in tqdm(input_vtt_files.items(), desc="Processing VTT files", unit="file"):
         try:
             if vtt_base not in input_json_files:
