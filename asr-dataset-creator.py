@@ -86,6 +86,19 @@ def main():
     input_vtt_files = list_files(INPUT_FOLDER_VTT)
     input_wav_files = list_files(INPUT_FOLDER_WAV)
 
+    len_matchings = len(set(input_vtt_files.keys()).intersection(set(input_wav_files.keys())))
+    logging.info(f"Found {len_matchings} matching VTT and WAV files.")
+
+    not_matching_vtt = set(input_vtt_files.keys()).difference(set(input_wav_files.keys()))
+    if not_matching_vtt:
+        logging.warning(f"Found {len(not_matching_vtt)} VTT files without matching WAV files.")
+        logging.warning(f"VTT files without matching WAV files: {not_matching_vtt}")
+
+    not_matching_wav = set(input_wav_files.keys()).difference(set(input_vtt_files.keys()))
+    if not_matching_wav:
+        logging.warning(f"Found {len(not_matching_wav)} WAV files without matching VTT files.")
+        logging.warning(f"WAV files without matching VTT files: {not_matching_wav}")
+
     for wav_base, wav_filename in tqdm(input_wav_files.items(), desc="Processing audio files", unit="file"):
         try:
             if wav_base not in input_vtt_files:

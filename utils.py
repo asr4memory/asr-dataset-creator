@@ -2,10 +2,10 @@ import os
 import logging
 
 def list_files(directory):
-    "Function to get the base name of the files up to the first underline."
+    "Function to get the base name of the files up to the third underline."
     files = {}
     for filename in os.listdir(directory):
-        base_name = filename.split("_", 1)[0]
+        base_name = "_".join(filename.split("_", 3)[:3])  # Nimmt die ersten drei Teile
         files[base_name] = filename
     return files
 
