@@ -20,7 +20,7 @@ To-Do:
 - Other Option: Retry LLM filtering until all entities are present in the JSON file (maybe with another temperature value???) --> CHECK
 - Remove common wrongly recognized entities from unique_entities list  --> CHECK
 - Try running Llama-3.3-70B-Instruct model --> CHECK
-- Automatically add false names to blacklist? --> CHECK (but robust?)
+- Automatically add false names to blacklist? --> CHECK
 """
 
 def load_gliner_model():

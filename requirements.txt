@@ -4,3 +4,6 @@ pandas
 toml
 webvtt-py
 tqdm
+gliner
+transformers
+accelerate
