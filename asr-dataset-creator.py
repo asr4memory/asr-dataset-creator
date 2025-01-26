@@ -8,17 +8,6 @@ from app_config import get_config
 from utils import list_files, set_up_logging
 import logging
 
-# Load the configuration
-config = get_config()["dataset_creator"]
-config_logging = get_config()["logging"]
-
-INPUT_FOLDER_VTT = Path(config["input_directory_vtt"])
-INPUT_FOLDER_WAV = Path(config["input_directory_wav"])
-OUTPUT_FOLDER = Path(config["output_directory"])
-LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
-SAMPLE_RATE = config["sample_rate"]
-OFFSET = config["offset"]
-
 def parse_vtt_file(vtt_file):
     """Parse the VTT file and extract segments with start, end times, and text."""
     segments = [
@@ -54,7 +43,7 @@ def time_to_seconds(time_str):
 
 def process_segment(args):
     """Extract a segment from the audio file using FFmpeg."""
-    (i, segment), audio_file, data_folder, output_folder, audio_filename_stem = args
+    (i, segment), audio_file, data_folder, output_folder, audio_filename_stem, SAMPLE_RATE, OFFSET = args
     segment_filename = f"{audio_filename_stem}_audio_segment_{i+1}.wav"
     segment_path = data_folder / segment_filename
 
@@ -77,6 +66,17 @@ def process_segment(args):
 
 def main():
     """Main function to execute the audio segment creation process."""
+    # Load the configuration
+    config = get_config()["dataset_creator"]
+    config_logging = get_config()["logging"]
+
+    INPUT_FOLDER_VTT = Path(config["input_directory_vtt"])
+    INPUT_FOLDER_WAV = Path(config["input_directory_wav"])
+    OUTPUT_FOLDER = Path(config["output_directory"])
+    LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
+    SAMPLE_RATE = config["sample_rate"]
+    OFFSET = config["offset"]
+
     # Set up logging
     logging_file_name = "create_dataset_errors.log"
     error_file_handler = set_up_logging(LOGGING_DIRECTORY, logging_file_name)
@@ -114,7 +114,7 @@ def main():
             logging.info(f"Processing file: {input_wav_file.name}")
             logging.info(f"Matching VTT file: {input_vtt_file.name}")
 
-            audio_filename_stem = input_wav_file.stem
+            audio_filename_stem = input_wav_file.stem + "dataset"
 
             # Prepare output structure and load existing metadata entries
             data_folder, metadata_file = setup_output_structure(OUTPUT_FOLDER, audio_filename_stem)
@@ -123,7 +123,7 @@ def main():
 
             # Prepare tasks for parallel processing
             tasks = [
-                ((i, segment), input_wav_file, data_folder, OUTPUT_FOLDER, audio_filename_stem)
+                ((i, segment), input_wav_file, data_folder, OUTPUT_FOLDER, audio_filename_stem, SAMPLE_RATE, OFFSET)
                 for i, segment in enumerate(vtt_segments)
                 if f"{audio_filename_stem}_audio_segment_{i+1}.wav" not in existing_files
             ]

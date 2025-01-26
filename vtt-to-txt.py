@@ -5,12 +5,6 @@ from app_config import get_config
 import logging
 from utils import set_up_logging
 
-config = get_config()["vtt_to_txt"]
-config_logging = get_config()["logging"]
-INPUT_PATH = Path(config["input_directory"])
-OUTPUT_PATH = Path(config["output_directory"])
-LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
-
 def clean_vtt_content(content, remove_punctuation=False):
     "Cleans up VTT strings so that WER can be detected."
     # Remove the VTT heading, segment numbers, time codes and notes and
@@ -49,7 +43,14 @@ def clean_vtt_content(content, remove_punctuation=False):
     return result
 
 def run_on_directory():
-    "Run through all VTT files in the specified directory."    
+    # Get the configuration settings
+    config = get_config()["vtt_to_txt"]
+    config_logging = get_config()["logging"]
+    INPUT_PATH = Path(config["input_directory"])
+    OUTPUT_PATH = Path(config["output_directory"])
+    LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
+    "Run through all VTT files in the specified directory."   
+     
     # Set up logging
     logging_file_name = "vtt_to_txt_errors.log"
     error_file_handler = set_up_logging(LOGGING_DIRECTORY, logging_file_name)

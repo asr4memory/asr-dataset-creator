@@ -21,17 +21,6 @@ To-Do:
 - Try running Llama-3.3-70B-Instruct model
 """
 
-# Load the configuration
-config = get_config()["ner_workflow"]
-config_logging = get_config()["logging"]
-
-INPUT_DIR = Path(config["input_directory"])
-OUTPUT_DIR = Path(config["output_directory"])
-LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
-
-batch_size = config["ner_batch_size"]
-threshold = config["ner_threshold"]
-max_new_tokens = config["llm_max_new_tokens"]
 
 def load_gliner_model():
     """
@@ -42,7 +31,7 @@ def load_gliner_model():
 
     return model
 
-def ner_workflow(transcription_txt_file, model):
+def ner_workflow(transcription_txt_file, model, threshold, batch_size):
     """
     Perform Named Entity Recognition (NER) on the transcription
     """
@@ -63,8 +52,7 @@ def ner_workflow(transcription_txt_file, model):
     # Variable to hold all warnings
     all_warnings = []
 
-    # Define batch size (number of lines to process at a time)
-    batch_size = 15
+    # Log the number of lines in the transcription
     logging.info(f"Batch size: {batch_size}")
 
     # Calculate the total number of batches
@@ -126,7 +114,7 @@ def ner_workflow(transcription_txt_file, model):
 
     return unique_entities, unique_entities_names
 
-def save_entities_csv(unique_entities, transcription_txt_file):
+def save_entities_csv(unique_entities, transcription_txt_file, batch_size, OUTPUT_DIR):
     """
     Output entities as tab-separated CSV
     """
@@ -182,7 +170,7 @@ def load_llm_model():
 #     return pipeline
 
 
-def filter_historical_entities(llm_pipeline, unique_entities, unique_entities_names):
+def filter_historical_entities(llm_pipeline, unique_entities, unique_entities_names, max_new_tokens):
     """
     Filter historical entities using a large language model
     """
@@ -214,7 +202,7 @@ def filter_historical_entities(llm_pipeline, unique_entities, unique_entities_na
     ]
     # Generate the output using the LLM
     logging.info("Starting the filtering process with the LLM.")
-    outputs = llm_pipeline(messages, max_new_tokens=10000)
+    outputs = llm_pipeline(messages, max_new_tokens=max_new_tokens)
     output = outputs[0]["generated_text"]
 
     # Extract the assistant content from the output
@@ -246,7 +234,7 @@ def filter_historical_entities(llm_pipeline, unique_entities, unique_entities_na
     return parsed_llm_entities, llm_entity_names
 
 
-def save_historical_entities(parsed_llm_entities, transcription_txt_file):
+def save_historical_entities(parsed_llm_entities, transcription_txt_file, OUTPUT_DIR):
     # Save the historical entities as JSON
     output_historical_entities_file = OUTPUT_DIR / f"{transcription_txt_file.stem}_historical_entities.json"
     with open(output_historical_entities_file, "w", encoding="utf-8") as f:
@@ -258,6 +246,18 @@ def main():
     """
     Main function to execute the NER and filtering workflow.
     """
+    # Load the configuration
+    config = get_config()["ner_workflow"]
+    config_logging = get_config()["logging"]
+
+    INPUT_DIR = Path(config["input_directory"])
+    OUTPUT_DIR = Path(config["output_directory"])
+    LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
+
+    batch_size = config["ner_batch_size"]
+    threshold = config["ner_threshold"]
+    max_new_tokens = config["llm_max_new_tokens"]
+
     # Set up logging
     logging_file_name = "ner_workflow_errors.log"
     error_file_handler = set_up_logging(LOGGING_DIRECTORY, logging_file_name)
@@ -278,16 +278,16 @@ def main():
         try:
             # Start workflow for NER
             logging.info(f"Start processing {transcription_txt_file.name}")
-            unique_entities, unique_entities_names = ner_workflow(transcription_txt_file, gliner_model)
+            unique_entities, unique_entities_names = ner_workflow(transcription_txt_file, gliner_model, threshold, batch_size)
         
             # Output entities as tab-separated CSV        
-            save_entities_csv(unique_entities, transcription_txt_file)
+            save_entities_csv(unique_entities, transcription_txt_file, batch_size, OUTPUT_DIR)
             
             # Start workflow for filtering historical entities via LLMs
             trials = 0
             llm_entity_names = []
             while set(unique_entities_names) != set(llm_entity_names) and trials < 5:
-                parsed_llm_entities, llm_entity_names = filter_historical_entities(llm_pipeline, unique_entities, unique_entities_names)
+                parsed_llm_entities, llm_entity_names = filter_historical_entities(llm_pipeline, unique_entities, unique_entities_names, max_new_tokens)
                 trials += 1
             
             if trials == 5:
@@ -298,7 +298,8 @@ def main():
                 continue
             
             # Save the historical entities as JSON
-            save_historical_entities(parsed_llm_entities, transcription_txt_file)
+            save_historical_entities(parsed_llm_entities, transcription_txt_file, OUTPUT_DIR)
+            
         except Exception as e:
             logger = logging.getLogger()
             logger.addHandler(error_file_handler)
