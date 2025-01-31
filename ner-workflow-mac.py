@@ -197,7 +197,8 @@ def filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique
             # Add entities with is_real_name: false to blacklist
             with open('./data/blacklist.txt', 'a', encoding='utf-8') as file:
                 for entity in parsed_llm_entities:
-                    if (entity["is_real_name"] == False) and (entity["entity_type"] == "person"):
+                    if ((entity["is_real_name"] == False and entity["entity_type"] == "person") or
+                        (entity["is_real_address"] == False and entity["entity_type"] == "residential address")):
                         file.write(f"{entity['entity_name'].lower()}\n") 
         else:
             logging.warning("Warning: The gliner and LLM outputs do not contain the same entites. Retrying the LLM filtering process.")
