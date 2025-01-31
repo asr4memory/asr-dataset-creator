@@ -16,8 +16,7 @@ from utils import set_up_logging
 To-Do:
 - Experiment with different temperatures for LLM filtering
 - Compare number of entities in CSV and JSON files --> CHECK
-- If there are entites missing in the JSON file, add them from the CSV file with historical flag set to false --> CHECK
-- Other Option: Retry LLM filtering until all entities are present in the JSON file (maybe with another temperature value???) --> CHECK
+- Retry LLM filtering until all entities are present in the JSON file (maybe with another temperature value???) --> CHECK
 - Remove common wrongly recognized entities from unique_entities list  --> CHECK
 - Try running Llama-3.3-70B-Instruct model --> CHECK
 - Automatically add false names to blacklist? --> CHECK
@@ -271,7 +270,7 @@ def main():
             if trials == 3:
                 logger = logging.getLogger()
                 logger.addHandler(error_file_handler)
-                logging.error(f"Failed to get the same entities from the LLM for {transcription_txt_file.name} after {trials} trials.")
+                logging.error(f"Failed to get the same entities from the LLM for {transcription_txt_file.name} after {trials - 1} trials.")
                 logger.removeHandler(error_file_handler)
                 continue
             
