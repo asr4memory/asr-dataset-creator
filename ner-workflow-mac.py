@@ -201,9 +201,9 @@ def filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique
                         (entity["is_real_address"] == False and entity["entity_type"] == "residential address")):
                         file.write(f"{entity['entity_name'].lower()}\n") 
         else:
-            logging.warning("Warning: The gliner and LLM outputs do not contain the same entites. Retrying the LLM filtering process.")
+            logging.warning("Warning: The gliner and LLM outputs do not contain the same entites.")
             sym_diff = set(llm_entity_names).symmetric_difference(set(unique_entities_names))
-            logging.warning("Different elements:", sym_diff)
+            logging.warning(f"Different elements: {sym_diff}")
 
     return parsed_llm_entities, llm_entity_names, sym_diff
 
@@ -260,15 +260,15 @@ def main():
             # Start workflow for filtering historical entities via LLMs
             trials = 1
             llm_entity_names = []
-            while set(unique_entities_names) != set(llm_entity_names) and trials <= 2:
+            while set(unique_entities_names) != set(llm_entity_names) and trials <= 1:
                 parsed_llm_entities, llm_entity_names, sym_diff = filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique_entities_names, trials, max_new_tokens)
                 trials += 1
                 if sym_diff:
                     with open('./data/found_diffs.txt', 'a', encoding='utf-8') as file:
-                        file.write(f"File: {transcription_txt_file.name}, Trial: {trials}, Different elements: {sym_diff}\n")
+                        file.write(f"File: {transcription_txt_file.name}, Trial: {trials - 1}, Different elements: {sym_diff}\n")
                     sym_diff.clear()
             
-            if trials == 3:
+            if set(unique_entities_names) != set(llm_entity_names) and trials == 2:
                 logger = logging.getLogger()
                 logger.addHandler(error_file_handler)
                 logging.error(f"Failed to get the same entities from the LLM for {transcription_txt_file.name} after {trials - 1} trials.")

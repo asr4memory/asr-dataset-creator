@@ -230,7 +230,7 @@ def filter_historical_entities(llm_pipeline, unique_entities, unique_entities_na
         else:
             logging.warning("Warning: The gliner and LLM outputs do not contain the same entites. Retrying the LLM filtering process.")
             sym_diff = set(llm_entity_names).symmetric_difference(set(unique_entities_names))
-            logging.warning("Different elements:", sym_diff)
+            logging.warning(f"Different elements: {sym_diff}")
 
     return parsed_llm_entities, llm_entity_names, sym_diff
 
@@ -287,7 +287,7 @@ def main():
             # Start workflow for filtering historical entities via LLMs
             trials = 1
             llm_entity_names = []
-            while set(unique_entities_names) != set(llm_entity_names) and trials <= 2:
+            while set(unique_entities_names) != set(llm_entity_names) and trials <= 1:
                 parsed_llm_entities, llm_entity_names, sym_diff = filter_historical_entities(llm_pipeline, unique_entities, unique_entities_names, trials, max_new_tokens)
                 trials += 1
                 if sym_diff:
@@ -295,7 +295,7 @@ def main():
                         file.write(f"File: {transcription_txt_file.name}, Trial: {trials}, Different elements: {sym_diff}\n")
                     sym_diff.clear()
             
-            if trials == 3:
+            if set(unique_entities_names) != set(llm_entity_names) and trials == 2:
                 logger = logging.getLogger()
                 logger.addHandler(error_file_handler)
                 logging.error(f"Failed to get the same entities from the LLM for {transcription_txt_file.name} after {trials} trials.")
