@@ -44,7 +44,7 @@ def ner_workflow(transcription_txt_file, model, threshold, batch_size):
     lines = transcription_text.splitlines()
 
     # Labels for entity prediction
-    labels = ["person", "residential address"]
+    labels = ["person", "full adress"] # residential address also possible
 
     # Variable to hold all predicted entities
     entities = []
