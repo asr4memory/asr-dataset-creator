@@ -660,10 +660,10 @@ if any, to sign a "copyright disclaimer" for the program, if necessary.
 For more information on this, and how to apply and follow the GNU AGPL, see
 <https://www.gnu.org/licenses/>.
 
-Summary
+Additional Notice
 
 This repository is licensed under the AGPL-3.0 license for the majority of 
-the code, with certain components integrating code under the Apache-2.0 license 
-and the Llama Community License. For clarity, ensure you comply with all three 
+the code, with certain components integrating code under the Apache-2.0 license (GliNER)
+and the Llama Community License (Llama models). For clarity, ensure you comply with all three 
 licenses when using or redistributing 
 this code.
