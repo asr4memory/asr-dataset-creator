@@ -10,6 +10,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from transformers import WhisperFeatureExtractor
+from transformers import WhisperTokenizer
+
 BASE_DIR = "/Users/pkompiel/python_scripts/asr4memory/asr-dataset-creator/data/dataset-merger/_output/eg_dataset_complete"
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CSV_FILE = os.path.join(BASE_DIR, "metadata.csv")
@@ -18,6 +21,11 @@ OUTPUT_HDF5 = "/Users/pkompiel/python_scripts/asr4memory/asr-dataset-creator/dat
 TARGET_SR = 16000
 PERCENTILE = 99
 
+# get model for Pre-Processing
+model_type = "whisper-large-v3"
+target_language = "german"
+feature_extractor = WhisperFeatureExtractor.from_pretrained(model_type)
+tokenizer = WhisperTokenizer.from_pretrained(model_type, language=target_language, task="transcribe")
 
 
 def hdfconverter(max_length_samples, sr=TARGET_SR, float16=False):
@@ -96,12 +104,6 @@ def hdfconverter(max_length_samples, sr=TARGET_SR, float16=False):
                 padded[:length_samples] = audio
                 audio = padded
 
-            # Pre-Processing
-            # get models
-            model_type = "whisper-large-v3"
-            target_language = "german"
-            feature_extractor = WhisperFeatureExtractor.from_pretrained(model_type)
-            tokenizer = WhisperTokenizer.from_pretrained(model_type, language=target_language, task="transcribe")
 
             # compute log-Mel input features from input audio array
             batch["input_features"] = feature_extractor(audio, sampling_rate=16000).input_features[0]
