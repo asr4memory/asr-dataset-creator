@@ -11,12 +11,10 @@ To set up the environment for this project, follow these steps:
     pip install -r requirements.txt
     ```
 2. Install Pytorch (https://pytorch.org/get-started/locally/) according to your system.
-
 3. When using Mac with ARM install the MLX library:
     ```sh
     pip install mlx_lm
     ```
-
 4. Create the configuration file:
     ```sh
     cp config.example.toml config.toml
@@ -51,7 +49,11 @@ To set up the environment for this project, follow these steps:
     ```sh
     python asr-dataset-merger.py
     ```
-6. Test the created datasets
+6. Convert dataset to HDF5 format
+    ```sh
+    python hdf5-converter.py
+    ```
+7. Test the created datasets
     ```sh
     python load-data-set.py
     ```
