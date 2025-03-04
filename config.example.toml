@@ -40,9 +40,18 @@ sample_rate = "16000"
 offset = -0.075
 
 [dataset_merger]
-input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_merger/_input/"
+input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_creator/_input/"
 output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_creator/_output/"
 merged_dataset_name = "merged_dataset_example"
+
+[hdf5_converter]
+input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/hdf-converter/_input"
+output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/hdf-converter/_output"
+sample_rate = "16000"        
+batch_size = "400"       
+threads = "16" 
+model = "openai/whisper-large-v3"
+language = "german"
 
 [dataset_test]
 input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_test/_input/dataset_example/"
