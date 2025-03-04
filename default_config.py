@@ -36,6 +36,16 @@ CONST_DEFAULT_CONFIG = {
         "input_directory": "",
         "output_directory": "",
     },
+    "hdf5_converter": {
+        "input_directory": "",
+        "output_directory": "",
+        "max_length_samples": 100000,
+        "sample_rate": 16000,
+        "batch_size": 100,
+        "threads": 4,
+        "model": "openai/whisper-large-v3",
+        "language": "german",
+    },
     "dataset_test": {
         "input_directory": "",
     },

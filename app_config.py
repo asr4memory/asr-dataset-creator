@@ -44,7 +44,7 @@ def initialize_config():
             }
             combined_config["hdf5_converter"] = {
                 **CONST_DEFAULT_CONFIG["hdf5_converter"],
-                **data.get("dataset_test", {}),
+                **data.get("hdf5_converter", {}),
             }
             combined_config["logging"] = {
                 **CONST_DEFAULT_CONFIG["logging"],
