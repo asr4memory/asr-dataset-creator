@@ -11,6 +11,7 @@ To set up the environment for this project, follow these steps:
     pip install -r requirements.txt
     ```
 2. Install Pytorch (https://pytorch.org/get-started/locally/) according to your system.
+
 3. When using Mac with ARM install the MLX library:
     ```sh
     pip install mlx_lm
@@ -41,7 +42,7 @@ To set up the environment for this project, follow these steps:
     ```sh
     python anonymize_vtt.py
     ```
-4. Create ASR training dataset by using the ffmpeg dataset creator to extract audio segments and prepare metadata. It needs an audio file (`.wav`) and a corresponding subtitle file (`.vtt`) as input
+4. Create ASR training dataset in the Huggingface AudioFolder structure by using the ffmpeg dataset creator to extract audio segments and prepare metadata. It needs an audio file (`.wav`) and a corresponding subtitle file (`.vtt`) as input
     ```sh
     python asr-dataset-creator.py
     ```
@@ -49,7 +50,7 @@ To set up the environment for this project, follow these steps:
     ```sh
     python asr-dataset-merger.py
     ```
-6. Convert dataset to HDF5 format
+6. Convert dataset to HDF5 format. Audio and transcript will be pre-processed with the Whisper feature extractor and tokenizer to be fit for model training.
     ```sh
     python hdf5-converter.py
     ```
