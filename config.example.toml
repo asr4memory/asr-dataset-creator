@@ -1,21 +1,21 @@
 [logging]
-logging_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/logs"
+logging_directory = "data/logs"
 
 [vtt_to_txt]
-input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_to_txt/_input"
-output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_to_txt/_output"
+input_directory = "data/vtt_to_txt/_input"
+output_directory = "data/vtt_to_txt/_output"
 
 [ner_workflow]
-input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/ner_workflow/_input"
-output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/ner_workflow/_output" 
+input_directory = "data/ner_workflow/_input"
+output_directory = "data/ner_workflow/_output" 
 ner_batch_size = 15
 ner_threshold = 0.7
 llm_max_new_tokens = 10000
 
 [vtt_anonymization]
-input_directory_vtt = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_anonymization/_input_vtt"
-input_directory_json = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_anonymization/_input_json"
-output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/vtt_anonymization/_output/"
+input_directory_vtt = "data/vtt_anonymization/_input_vtt"
+input_directory_json = "data/vtt_anonymization/_input_json"
+output_directory = "data/vtt_anonymization/_output"
 
 vtt_replacements = [
   { pattern = "_", replacement = "" },
@@ -33,23 +33,23 @@ vtt_replacements = [
 ]
 
 [dataset_creator]
-input_directory_vtt = "/Users/ahenderson/Documents/Whisper_Test_Files/_input_vtt"
-input_directory_wav = "/Users/ahenderson/Documents/Whisper_Test_Files/_input_wav"
-output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_creator/_output/"
+input_directory_vtt = "data/dataset_creator/_input_vtt"
+input_directory_wav = "data/dataset_creator/_input_wav"
+output_directory = "data/dataset_creator/_output"
 offset = -0.075
 
 [dataset_merger]
-input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_creator/_input/"
-output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_creator/_output/"
+input_directory = "data/dataset_merger/_input"
+output_directory = "data/dataset_merger/_output"
 merged_dataset_name = "merged_dataset_example"
 
 [hdf5_converter]
-input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/hdf-converter/_input"
-output_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/hdf-converter/_output"      
+input_directory = "data/hdf5_converter/_input"
+output_directory = "data/hdf5_converter/_output"      
 batch_size = "400"       
 threads = "16" 
 model = "openai/whisper-large-v3"
 language = "german"
 
 [dataset_test]
-input_directory = "/Users/ahenderson/Documents/Whisper_Test_Files/dataset_test/_input/dataset_example/"
+input_directory = "data/dataset_test/_input"
