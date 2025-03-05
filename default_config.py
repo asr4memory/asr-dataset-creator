@@ -29,7 +29,6 @@ CONST_DEFAULT_CONFIG = {
         "input_directory_vtt": "",
         "input_directory_wav": "",
         "output_directory": "",
-        "sample_rate": "16000",
         "offset": 0.075,
     },
     "dataset_merger": {
@@ -39,8 +38,6 @@ CONST_DEFAULT_CONFIG = {
     "hdf5_converter": {
         "input_directory": "",
         "output_directory": "",
-        "max_length_samples": 100000,
-        "sample_rate": 16000,
         "batch_size": 100,
         "threads": 4,
         "model": "openai/whisper-large-v3",

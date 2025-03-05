@@ -74,8 +74,8 @@ def main():
     INPUT_FOLDER_WAV = Path(config["input_directory_wav"])
     OUTPUT_FOLDER = Path(config["output_directory"])
     LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
-    SAMPLE_RATE = config["sample_rate"]
     OFFSET = config["offset"]
+    SAMPLE_RATE = "16000"
 
     # Set up logging
     logging_file_name = "create_dataset_errors.log"

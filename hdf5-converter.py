@@ -149,13 +149,13 @@ def main():
     config_logging = get_config()["logging"]
     INPUT_DIRECTORY = Path(config["input_directory"])
     OUTPUT_DIRECTORY = Path(config["output_directory"])
-    MAX_LENGTH_SAMPLES = int(config["max_length_samples"])
-    TARGET_SR = int(config["sample_rate"])
     BATCH_SIZE = int(config["batch_size"])
     N_JOBS = int(config["threads"])
     MODEL_TYPE = config["model"]
     TARGET_LANGUAGE = config["language"]
     LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
+    MAX_LENGTH_SAMPLES = 480000
+    TARGET_SR = 16000
 
     # Set up logging
     logging_file_name = "hdf5_conversion_erros.log"
@@ -170,7 +170,7 @@ def main():
             logging.info(f"Processing dataset: {BASE_DIR.name}")
             if BASE_DIR.is_dir():
                 CSV_FILE = BASE_DIR / "metadata.csv"
-                OUTPUT_HDF5 = OUTPUT_DIRECTORY / f"{BASE_DIR.stem}.hdf5"
+                OUTPUT_HDF5 = OUTPUT_DIRECTORY / f"{BASE_DIR.stem}.h5"
                 hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, feature_extractor, tokenizer, float16=False)
                 test_hdf5(OUTPUT_HDF5)
         except Exception as e:
