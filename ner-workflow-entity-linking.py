@@ -153,7 +153,6 @@ def save_entities_csv(unique_entities, transcription_txt_file, batch_size, OUTPU
         # Write each entity in tab-separated format
         for entity in unique_entities:
             file.write(f"{entity['text']}\t{entity['label']}\t{entity['score']}\n")
-    logging.info(f"Entities saved as: {output_entities_file}")
 
 
 def load_llm_model():
@@ -198,7 +197,7 @@ def filter_real_entities(llm_model, llm_tokenizer, unique_entities, unique_entit
 
     # Generate the output using the LLM
     logging.info(f"Starting the filtering process with the LLM. Trial: {trials}")
-    response = generate(llm_model, llm_tokenizer, prompt=prompt, verbose=True, max_tokens=max_new_tokens)
+    response = generate(llm_model, llm_tokenizer, prompt=prompt, verbose=False, max_tokens=max_new_tokens)
     # print(response)
 
     # Parse the assistant content as JSON
@@ -234,11 +233,18 @@ def filter_real_entities(llm_model, llm_tokenizer, unique_entities, unique_entit
     return parsed_llm_entities, llm_entity_names, sym_diff
 
 
+def save_json_entities(entities, output_entities_file):
+    """
+    Save the LLM entities as JSON
+    """
+    with open(output_entities_file, "w", encoding="utf-8") as f:
+        json.dump(entities, f, ensure_ascii=False, indent=2)
+
 def initialize_historical_entities(parsed_llm_entities, unique_entities):
     """
     Initialize the list of historical entities with the real names and addresses
     """
-    real_entities = []
+    expanded_entities = []
     for entity in parsed_llm_entities:
         is_real = False
         if entity["entity_type"] == "person" and entity.get("is_real_name", False):
@@ -259,9 +265,9 @@ def initialize_historical_entities(parsed_llm_entities, unique_entities):
                     "is_real_address": entity.get("is_real_address", False),
                     "is_historical": False  # Default value, will be updated by entity linking
                 }
-                real_entities.append(real_entity)
+                expanded_entities.append(real_entity)
 
-    return real_entities
+    return expanded_entities
 
 
 def entity_linking(entities, historical_df, threshold=80):
@@ -290,6 +296,8 @@ def entity_linking(entities, historical_df, threshold=80):
     for entity in entities:
         entity_text = entity['entity_name']
         entity_type = entity['entity_type']
+        is_real_name = entity['is_real_name']
+        is_real_address = entity['is_real_address']
         
         # Initialize historical information if not already present
         if 'is_historical' not in entity:
@@ -301,11 +309,11 @@ def entity_linking(entities, historical_df, threshold=80):
         
         # Map GLiNER entity types to historical entity types
         matching_types = []
-        if entity_type == "person":
+        if entity_type == "person" and is_real_name:
             # Look for historical persons
             matching_types.extend([t for t in historical_entities_by_type.keys() 
                                   if 'person' in t.lower() or 'people' in t.lower()])
-        elif entity_type == "full adress" or entity_type == "residential address":
+        elif entity_type == "full adress" or entity_type == "residential address" and is_real_address:
             # Look for historical locations
             matching_types.extend([t for t in historical_entities_by_type.keys() 
                                   if 'location' in t.lower() or 'place' in t.lower() or 
@@ -332,13 +340,6 @@ def entity_linking(entities, historical_df, threshold=80):
                 entity['is_historical'] = True
                 entity['historical_match'] = best_match
                 entity['match_score'] = score
-                
-                # # Get additional information about the historical entity if available
-                # if 'parent' in historical_df.columns:
-                #     match_rows = historical_df[historical_df['name'] == best_match]
-                #     if not match_rows.empty:
-                #         match_idx = match_rows.index[0]
-                #         entity['historical_type'] = historical_df.loc[match_idx, 'parent']
                 
                 logging.debug(f"Entity '{entity_text}' ({entity_type}) matched to historical entity '{best_match}' with score {score}")
         
@@ -397,8 +398,9 @@ def main():
             logging.info(f"Start processing {transcription_txt_file.name}")
             unique_entities, unique_entities_names = ner_workflow(transcription_txt_file, gliner_model, threshold, batch_size)
         
-            # Output raw entities as tab-separated CSV
+            # Output GliNER entities as tab-separated CSV
             save_entities_csv(unique_entities, transcription_txt_file, batch_size, OUTPUT_DIR)
+            logging.info(f"GliNER entities saved as CSV for: {transcription_txt_file.name}")
             
             # First use LLM to filter real names and addresses
             trials = 1
@@ -423,30 +425,28 @@ def main():
             if parsed_llm_entities:
                 # Save the LLM output as JSON
                 output_llm_entities_file = OUTPUT_DIR / f"{transcription_txt_file.stem}_llm_entities.json"
-                with open(output_llm_entities_file, "w", encoding="utf-8") as f:
-                    json.dump(parsed_llm_entities, f, ensure_ascii=False, indent=2)
+                save_json_entities(parsed_llm_entities, output_llm_entities_file)
                 logging.info(f"LLM entities saved as: {output_llm_entities_file}")
 
                 # Initialize the list of historical entities with the real names and addresses
-                real_entities = initialize_historical_entities(parsed_llm_entities, unique_entities)
+                expanded_entities = initialize_historical_entities(parsed_llm_entities, unique_entities)
             
                 # Now perform entity linking only on real entities
-                if not historical_df.empty and real_entities:
-                    logging.info(f"Performing entity linking on {len(real_entities)} real entities")
-                    real_entities = entity_linking(real_entities, historical_df, ENTITY_LINKING_THRESHOLD)
+                if not historical_df.empty and expanded_entities:
+                    logging.info(f"Performing entity linking on {len(expanded_entities)} expanded entities.")
+                    final_entities = entity_linking(expanded_entities, historical_df, ENTITY_LINKING_THRESHOLD)
                     logging.info(f"Entity linking completed for {transcription_txt_file.name}")
                 
                 # Save the final entities as JSON
                 output_final_entities_file = OUTPUT_DIR / f"{transcription_txt_file.stem}_final_entities.json"
-                with open(output_final_entities_file, "w", encoding="utf-8") as f:
-                    json.dump(real_entities, f, ensure_ascii=False, indent=2)
-                logging.info(f"Historical entities saved as: {output_final_entities_file}")
+                save_json_entities(final_entities, output_final_entities_file)
+                logging.info(f"Final entities saved as: {output_final_entities_file}")
 
             else:
                 logging.warning(f"No valid entities found by LLM for {transcription_txt_file.name}")
                 # Save empty files to indicate processing was attempted
                 
-                with open(OUTPUT_DIR / f"{transcription_txt_file.stem}_historical_entities.json", "w") as f:
+                with open(OUTPUT_DIR / f"{transcription_txt_file.stem}_final_entities.json", "w") as f:
                     f.write("[]")
             
         except Exception as e:
@@ -457,8 +457,7 @@ def main():
             continue
         
 
-    # Clear the GPU memory and delete the pipeline
-    torch.cuda.empty_cache()
+    # Delete the pipeline
     gc.collect()
 
     logging.info("NER and filtering workflow completed.")
