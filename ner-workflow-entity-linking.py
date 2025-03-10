@@ -171,13 +171,15 @@ def filter_real_entities(llm_model, llm_tokenizer, unique_entities, unique_entit
     # Define the prompt for the LLM
     prompt = (
         "Du erhältst eine Liste von Entitäten (Personen und Adressen), die per Named Entity Recognition erkannt wurden. "
-        "1) Bitte prüfe, bei welchen Personen es sich um richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'residential address' oder 'full adress' sollte in diesem Fall der Wert immer 'false' sein. "
-        "2) Bitte prüfe, bei welchen Adressen es sich um richtige Adressen (Straße mit Hausnummer) handelt. Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein. "
+        "1) Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt, und gib die Antwort ausschließlich im JSON-Format zurück. "
+        "2) Bitte prüfe, bei welchen Personen es sich um richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'residential address' sollte in diesem Fall der Wert immer 'false' sein. "
+        "3) Bitte prüfe, bei welchen Adressen es sich um richtige Adressen (Straße mit Hausnummer) handelt. Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein."
         "Jede Entität sollte als ein Objekt im folgenden Format dargestellt werden:\n"
         "{\n"
         '  "entity_name": "<Name der Entität>",\n'
         '  "entity_type": "<Typ der Entität>",\n'
-        '  "is_real_name": true/false,\n'
+        '  "is_historical": true/false\n'
+        '  "is_real_name": true/false\n'
         '  "is_real_address": true/false\n'
         "}\n"
         "Gib ausschließlich gültiges JSON zurück. Keine zusätzlichen Kommentare oder Erklärungen.\n"
@@ -246,26 +248,19 @@ def initialize_historical_entities(parsed_llm_entities, unique_entities):
     """
     expanded_entities = []
     for entity in parsed_llm_entities:
-        is_real = False
-        if entity["entity_type"] == "person" and entity.get("is_real_name", False):
-            is_real = True
-        elif (entity["entity_type"] == "full adress" or entity["entity_type"] == "residential address") and entity.get("is_real_address", False):
-            is_real = True
-        
-        if is_real:
-            # Find the original entity data with score
-            original_entity = next((e for e in unique_entities if e["text"] == entity["entity_name"]), None)
-            if original_entity:
-                # Create a new dict with all necessary information
-                real_entity = {
-                    "entity_name": entity["entity_name"],
-                    "entity_type": entity["entity_type"],
-                    "gliner_score": original_entity.get("score", 0),
-                    "is_real_name": entity.get("is_real_name", False),
-                    "is_real_address": entity.get("is_real_address", False),
-                    "is_historical": False  # Default value, will be updated by entity linking
-                }
-                expanded_entities.append(real_entity)
+        # Find the original entity data with score
+        original_entity = next((e for e in unique_entities if e["text"] == entity["entity_name"]), None)
+        if original_entity:
+            # Create a new dict with all necessary information
+            real_entity = {
+                "entity_name": entity["entity_name"],
+                "entity_type": entity["entity_type"],
+                "gliner_score": original_entity.get("score", 0),
+                "is_real_name": entity.get("is_real_name", False),
+                "is_real_address": entity.get("is_real_address", False),
+                "is_historical": entity.get("is_historical", False),
+            }
+            expanded_entities.append(real_entity)
 
     return expanded_entities
 
@@ -290,6 +285,8 @@ def entity_linking(entities, historical_df, threshold=80):
         # If no type column, just use all names
         historical_entities_by_type['default'] = historical_df['name'].tolist()
     
+    print(historical_entities_by_type)
+    
     # Enhance entities with historical information
     enhanced_entities = []
     
@@ -302,8 +299,8 @@ def entity_linking(entities, historical_df, threshold=80):
         # Initialize historical information if not already present
         if 'is_historical' not in entity:
             entity['is_historical'] = False
-        if 'historical_match' not in entity:
-            entity['historical_match'] = None
+        if 'match_found_in_list' not in entity:
+            entity['match_found_in_list'] = None
         if 'match_score' not in entity:
             entity['match_score'] = 0
         
@@ -330,6 +327,7 @@ def entity_linking(entities, historical_df, threshold=80):
         for match_type in matching_types:
             if match_type in historical_entities_by_type:
                 potential_matches.extend(historical_entities_by_type[match_type])
+        print(potential_matches)
         
         # Only proceed if we have potential matches
         if potential_matches:
@@ -338,7 +336,7 @@ def entity_linking(entities, historical_df, threshold=80):
             
             if score >= threshold:
                 entity['is_historical'] = True
-                entity['historical_match'] = best_match
+                entity['match_found_in_list'] = best_match
                 entity['match_score'] = score
                 
                 logging.debug(f"Entity '{entity_text}' ({entity_type}) matched to historical entity '{best_match}' with score {score}")
