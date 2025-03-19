@@ -355,17 +355,21 @@ def main():
     config = get_config()["ner_workflow"]
     config_logging = get_config()["logging"]
 
+    # Set up the paths
     INPUT_DIR = Path(config["input_directory"])
     OUTPUT_DIR = Path(config["output_directory"])
     LOGGING_DIRECTORY = Path(config_logging["logging_directory"])
-    
-    # New configuration parameter for the historical entities CSV file
-    HISTORICAL_ENTITIES_FILE = "/Users/pkompiel/python_scripts/asr4memory/asr-dataset-creator/data/ner-workflow/eg_register.csv"
-    ENTITY_LINKING_THRESHOLD = 80  # Default threshold is 80
+    HISTORICAL_ENTITIES_FILE = Path(config["entity_linking_file"])
 
+    # Configuration parameters for NER
     batch_size = config["ner_batch_size"]
     threshold = config["ner_threshold"]
+
+    # Configuration parameter for LLM filtering
     max_new_tokens = config["llm_max_new_tokens"]
+
+    # Configuration parameter for entity linking
+    entity_linking_threshold = config["entity_linking_threshold"]
     
     # Make sure the output directory exists
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -432,7 +436,7 @@ def main():
                 # Now perform entity linking only on real entities
                 if not historical_df.empty and expanded_entities:
                     logging.info(f"Performing entity linking on {len(expanded_entities)} expanded entities.")
-                    final_entities = entity_linking(expanded_entities, historical_df, ENTITY_LINKING_THRESHOLD)
+                    final_entities = entity_linking(expanded_entities, historical_df, entity_linking_threshold)
                     logging.info(f"Entity linking completed for {transcription_txt_file.name}")
                 
                 # Save the final entities as JSON

@@ -17,7 +17,9 @@ CONST_DEFAULT_CONFIG = {
         "output_directory": "",
         "ner_batch_size": 15,
         "ner_threshold": 0.5,
-        "llm_max_new_tokens": 10000,  
+        "llm_max_new_tokens": 10000, 
+        "entity_linking_file": "",
+        "entity_linking_threshold": 80,
     },
     "vtt_anonymization": {
         "input_directory_vtt": "",

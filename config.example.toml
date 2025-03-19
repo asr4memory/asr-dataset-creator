@@ -11,6 +11,8 @@ output_directory = "data/ner_workflow/_output"
 ner_batch_size = 15
 ner_threshold = 0.7
 llm_max_new_tokens = 10000
+entity_linking_file = "data/ner-workflow/entites.csv"
+entity_linking_theshold = 80
 
 [vtt_anonymization]
 input_directory_vtt = "data/vtt_anonymization/_input_vtt"
