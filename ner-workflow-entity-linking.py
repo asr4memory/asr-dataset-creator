@@ -73,7 +73,7 @@ def ner_workflow(transcription_txt_file, model, threshold, batch_size):
     lines = transcription_text.splitlines()
 
     # Labels for entity prediction
-    labels = ["person", "full adress"] # residential address also possible
+    labels = ["person", "full address"] # residential address also possible
 
     # Variable to hold all predicted entities
     entities = []
@@ -172,8 +172,8 @@ def filter_real_entities(llm_model, llm_tokenizer, unique_entities, unique_entit
     prompt = (
         "Du erhältst eine Liste von Entitäten (Personen und Adressen), die per Named Entity Recognition erkannt wurden. "
         "1) Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt, und gib die Antwort ausschließlich im JSON-Format zurück. "
-        "2) Bitte prüfe, bei welchen Personen es sich um richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'residential address' sollte in diesem Fall der Wert immer 'false' sein. "
-        "3) Bitte prüfe, bei welchen Adressen es sich um richtige Adressen (Straße mit Hausnummer) handelt. Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein."
+        "2) Bitte prüfe, bei welchen Personen (Entitätentyp 'person') es sich um richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'full address' sollte in diesem Fall der Wert immer 'false' sein. "
+        "3) Bitte prüfe, bei welchen Adressen (Entitätentyp 'full address') es sich um richtige Adressen (Straße mit Hausnummer) handelt. Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein."
         "Jede Entität sollte als ein Objekt im folgenden Format dargestellt werden:\n"
         "{\n"
         '  "entity_name": "<Name der Entität>",\n'
