@@ -31,12 +31,15 @@ To set up the environment for this project, follow these steps:
     ```sh
     python vtt-to-txt.py
     ```
-2. Extract entities (people and addresses) from the text files and save them in JSON files (`.json`). You can either use an CUDA or an MAC/ARM version of the script. The ner workflows script uses GliNER (https://github.com/urchade/GLiNER) for a rough pre extraction of entities (people and adresses). In a second step, the results are fed to a LLM prompt for refined results. Currently, the CUDA script uses Llama3.1 8B (https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct) and the MAC/ARM script uses Llama 3.3 70B 4bit quantized (https://huggingface.co/mlx-community/Llama-3.3-70B-Instruct-4bit). For better results, it is recommended to use the MAC/ARM script.
+2. Extract entities (people and addresses) from the text files and save them in JSON files (`.json`). You can either use an CUDA or an MAC/ARM version of the script. The ner workflows script uses GliNER (https://github.com/urchade/GLiNER) for a rough pre extraction of entities (people and adresses). In a second step, the results are fed to a LLM prompt for refined results. Currently, the CUDA script uses Llama3.1 8B (https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct) and the MAC/ARM script uses Llama 3.3 70B 4bit quantized (https://huggingface.co/mlx-community/Llama-3.3-70B-Instruct-4bit). For better results, it is recommended to use the MAC/ARM script. Optionally, you can use a version of the MAC/ARM script that includes a third step which matches the recognized entites with a index of historical people and places.
     ```sh
     python ner-workflow.py
     ```
     ```sh
     python ner-workflow-mac.py
+    ```
+        ```sh
+    python ner-workflow-entity-linking.py
     ```
 3. Anonymize the subtile files if necessary (`.vtt`) using the JSON files (`.json`) provided by the ASR4Memory pipelines.
     ```sh
