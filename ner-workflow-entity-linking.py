@@ -173,7 +173,7 @@ def filter_real_entities(llm_model, llm_tokenizer, unique_entities, unique_entit
         "Du erhältst eine Liste von Entitäten (Personen und Adressen), die per Named Entity Recognition erkannt wurden. "
         "1) Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt, und gib die Antwort ausschließlich im JSON-Format zurück. "
         "2) Bitte prüfe, bei welchen Personen (Entitätentyp 'person') es sich um richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'full address' sollte in diesem Fall der Wert immer 'false' sein. "
-        "3) Bitte prüfe, bei welchen Adressen (Entitätentyp 'full address') es sich um richtige Adressen (Straße mit Hausnummer) handelt. Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein."
+        "3) Bitte prüfe, bei welchen Adressen (Entitätentyp 'full address') es sich um richtige Adressen handelt. Dabei muss die Straße zusammen mit der Hausnummer stehen (Beispiel: Musterstraße 1). Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein."
         "Jede Entität sollte als ein Objekt im folgenden Format dargestellt werden:\n"
         "{\n"
         '  "entity_name": "<Name der Entität>",\n'
@@ -225,7 +225,7 @@ def filter_real_entities(llm_model, llm_tokenizer, unique_entities, unique_entit
             with open('./data/blacklist.txt', 'a', encoding='utf-8') as file:
                 for entity in parsed_llm_entities:
                     if ((entity["is_real_name"] == False and entity["entity_type"] == "person") or
-                        (entity["is_real_address"] == False and (entity["entity_type"] == "residential address" or entity["entity_type"] == "full adress"))):
+                        (entity["is_real_address"] == False and (entity["entity_type"] == "residential address" or entity["entity_type"] == "full address"))):
                         file.write(f"{entity['entity_name'].lower()}\n") 
         else:
             logging.warning("Warning: The gliner and LLM outputs do not contain the same entites.")
@@ -310,7 +310,7 @@ def entity_linking(entities, historical_df, threshold=80):
             # Look for historical persons
             matching_types.extend([t for t in historical_entities_by_type.keys() 
                                   if 'person' in t.lower() or 'people' in t.lower()])
-        elif entity_type == "full adress" or entity_type == "residential address" and is_real_address:
+        elif entity_type == "full address" or entity_type == "residential address" and is_real_address:
             # Look for historical locations
             matching_types.extend([t for t in historical_entities_by_type.keys() 
                                   if 'location' in t.lower() or 'place' in t.lower() or 
