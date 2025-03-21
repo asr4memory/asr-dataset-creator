@@ -172,8 +172,8 @@ def filter_real_entities(llm_model, llm_tokenizer, unique_entities, unique_entit
     prompt = (
         "Du erhältst eine Liste von Entitäten (Personen und Adressen), die per Named Entity Recognition erkannt wurden. "
         "1) Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt, und gib die Antwort ausschließlich im JSON-Format zurück. "
-        "2) Bitte prüfe, bei welchen Personen (Entitätentyp 'person') es sich um richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'full address' sollte in diesem Fall der Wert immer 'false' sein. "
-        "3) Bitte prüfe, bei welchen Adressen (Entitätentyp 'full address') es sich um richtige Adressen handelt. Dabei muss die Straße zusammen mit der Hausnummer stehen (Beispiel: Musterstraße 1). Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein."
+        "2) Bitte prüfe, bei welchen Personen (Entitätentyp 'person') es sich um ausschließlich richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'full address' sollte in diesem Fall der Wert immer 'false' sein. "
+        "3) Bitte prüfe, bei welchen Adressen (Entitätentyp 'full address') es sich um richtige Adressen handelt. Bei einer richtigen Adresse handelt es sich ausschließlich nur dann, wenn eine Straße zusammen mit einer Hausnummer auftritt (Beispiel: Musterstraße 1). Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein."
         "Jede Entität sollte als ein Objekt im folgenden Format dargestellt werden:\n"
         "{\n"
         '  "entity_name": "<Name der Entität>",\n'
@@ -222,7 +222,7 @@ def filter_real_entities(llm_model, llm_tokenizer, unique_entities, unique_entit
         if set(unique_entities_names) == set(llm_entity_names):
             logging.info("Success: The gliner and LLM outputs contain the same entites")
             # Add entities with is_real_name: false to blacklist
-            with open('./data/blacklist.txt', 'a', encoding='utf-8') as file:
+            with open('./data/blacklist_new_entries.txt', 'a', encoding='utf-8') as file:
                 for entity in parsed_llm_entities:
                     if ((entity["is_real_name"] == False and entity["entity_type"] == "person") or
                         (entity["is_real_address"] == False and (entity["entity_type"] == "residential address" or entity["entity_type"] == "full address"))):
