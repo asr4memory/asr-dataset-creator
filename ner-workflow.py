@@ -166,10 +166,10 @@ def filter_historical_entities(llm_pipeline, unique_entities, unique_entities_na
     sym_diff = set()
     # Define the prompt for the LLM
     prompt_system = (
-        "Du erhältst eine Liste von Entitäten (Personen und Adressen), die per Named Entity Recognition erkannt wurden. "
-        "1) Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt, und gib die Antwort ausschließlich im JSON-Format zurück. "
-        "2) Bitte prüfe, bei welchen Personen (Entitätentyp 'person') es sich um ausschließlich richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'full address' sollte in diesem Fall der Wert immer 'false' sein. "
-        "3) Bitte prüfe, bei welchen Adressen (Entitätentyp 'full address') es sich um richtige Adressen handelt. Bei einer richtigen Adresse handelt es sich ausschließlich nur dann, wenn eine Straße zusammen mit einer Hausnummer auftritt (Beispiel: Musterstraße 1). Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein."
+        "Du erhältst eine Liste von Entitäten (Personen und Adressen), die per Named Entity Recognition erkannt wurden.\n"
+        "1) Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt, und gib die Antwort ausschließlich im JSON-Format zurück.\n"
+        "2) Bitte prüfe, bei welchen Personen (Entitätentyp 'person') es sich um ausschließlich richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'full address' sollte in diesem Fall der Wert immer 'false' sein.\n"
+        "3) Bitte prüfe, bei welchen Adressen (Entitätentyp 'full address') es sich um richtige Adressen handelt. Bei einer richtigen Adresse handelt es sich ausschließlich nur dann, wenn eine Straße zusammen mit einer Hausnummer auftritt (Beispiel: Musterstraße 1). Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein.\n"
         "Jede Entität sollte als ein Objekt im folgenden Format dargestellt werden:\n"
         "{\n"
         '  "entity_name": "<Name der Entität>",\n'
@@ -178,7 +178,7 @@ def filter_historical_entities(llm_pipeline, unique_entities, unique_entities_na
         '  "is_real_name": true/false\n'
         '  "is_real_address": true/false\n'
         "}\n"
-        "Gib ausschließlich gültiges JSON zurück. Keine zusätzlichen Kommentare oder Erklärungen.\n"
+        "Gib ausschließlich gültiges JSON zurück. Keine zusätzlichen Kommentare, Erklärungen oder Formatierungszeichen wie Backticks ('''/```).\n"
     )
     logging.info("System prompt:")
     print(prompt_system)

@@ -170,10 +170,10 @@ def filter_real_entities(llm_model, llm_tokenizer, unique_entities, unique_entit
     sym_diff = set()
     # Define the prompt for the LLM
     prompt = (
-        "Du erhältst eine Liste von Entitäten (Personen und Adressen), die per Named Entity Recognition erkannt wurden. "
-        "1) Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt, und gib die Antwort ausschließlich im JSON-Format zurück. "
-        "2) Bitte prüfe, bei welchen Personen (Entitätentyp 'person') es sich um ausschließlich richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'full address' sollte in diesem Fall der Wert immer 'false' sein. "
-        "3) Bitte prüfe, bei welchen Adressen (Entitätentyp 'full address') es sich um richtige Adressen handelt. Bei einer richtigen Adresse handelt es sich ausschließlich nur dann, wenn eine Straße zusammen mit einer Hausnummer auftritt (Beispiel: Musterstraße 1). Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein."
+        "Du erhältst eine Liste von Entitäten (Personen und Adressen), die per Named Entity Recognition erkannt wurden.\n"
+        "1) Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt, und gib die Antwort ausschließlich im JSON-Format zurück.\n"
+        "2) Bitte prüfe, bei welchen Personen (Entitätentyp 'person') es sich um ausschließlich richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'full address' sollte in diesem Fall der Wert immer 'false' sein.\n"
+        "3) Bitte prüfe, bei welchen Adressen (Entitätentyp 'full address') es sich um richtige Adressen handelt. Bei einer richtigen Adresse handelt es sich ausschließlich nur dann, wenn eine Straße zusammen mit einer Hausnummer auftritt (Beispiel: Musterstraße 1). Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein.\n"
         "Jede Entität sollte als ein Objekt im folgenden Format dargestellt werden:\n"
         "{\n"
         '  "entity_name": "<Name der Entität>",\n'
@@ -182,7 +182,7 @@ def filter_real_entities(llm_model, llm_tokenizer, unique_entities, unique_entit
         '  "is_real_name": true/false\n'
         '  "is_real_address": true/false\n'
         "}\n"
-        "Gib ausschließlich gültiges JSON zurück. Keine zusätzlichen Kommentare oder Erklärungen.\n"
+        "Gib ausschließlich gültiges JSON zurück. Keine zusätzlichen Kommentare, Erklärungen oder Formatierungszeichen wie Backticks ('''/```).\n"
     )
     for entity in unique_entities:
         prompt += f"- {entity['text']} ({entity['label']})\n"
@@ -285,8 +285,6 @@ def entity_linking(entities, historical_df, threshold=80):
         # If no type column, just use all names
         historical_entities_by_type['default'] = historical_df['name'].tolist()
     
-    print(historical_entities_by_type)
-    
     # Enhance entities with historical information
     enhanced_entities = []
     
@@ -327,7 +325,7 @@ def entity_linking(entities, historical_df, threshold=80):
         for match_type in matching_types:
             if match_type in historical_entities_by_type:
                 potential_matches.extend(historical_entities_by_type[match_type])
-        print(potential_matches)
+        logging.debug(f"Potential matches for '{entity_text}' ({entity_type}): {potential_matches}")
         
         # Only proceed if we have potential matches
         if potential_matches:
