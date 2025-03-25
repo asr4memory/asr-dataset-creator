@@ -11,6 +11,7 @@ import torch
 from app_config import get_config
 import gc
 from utils import set_up_logging
+import csv
 
 """
 To-Do:
@@ -136,7 +137,7 @@ def load_llm_model():
     return model, tokenizer
 
 
-def filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique_entities_names, trials, max_new_tokens):
+def filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique_entities_names, trials, max_new_tokens, transcription_txt_file):
     """
     Filter historical entities using a large language model
     """
@@ -195,11 +196,12 @@ def filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique
         if set(unique_entities_names) == set(llm_entity_names):
             logging.info("Success: The gliner and LLM outputs contain the same entites")
             # Add entities with is_real_name: false to blacklist
-            with open('./data/blacklist.txt', 'a', encoding='utf-8') as file:
+            with open('./data/blacklist_new_entries.csv', 'a', encoding='utf-8', newline='') as csvfile:
+                csv_writer = csv.writer(csvfile, delimiter='\t')
                 for entity in parsed_llm_entities:
                     if ((entity["is_real_name"] == False and entity["entity_type"] == "person") or
-                        (entity["is_real_address"] == False and entity["entity_type"] == "residential address")):
-                        file.write(f"{entity['entity_name'].lower()}\n") 
+                        (entity["is_real_address"] == False and (entity["entity_type"] == "residential address" or entity["entity_type"] == "full address"))):
+                        csv_writer.writerow([entity['entity_name'].lower(), transcription_txt_file.name])
         else:
             logging.warning("Warning: The gliner and LLM outputs do not contain the same entites.")
             sym_diff = set(llm_entity_names).symmetric_difference(set(unique_entities_names))
@@ -261,7 +263,7 @@ def main():
             trials = 1
             llm_entity_names = []
             while set(unique_entities_names) != set(llm_entity_names) and trials <= 1:
-                parsed_llm_entities, llm_entity_names, sym_diff = filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique_entities_names, trials, max_new_tokens)
+                parsed_llm_entities, llm_entity_names, sym_diff = filter_historical_entities(llm_model, llm_tokenizer, unique_entities, unique_entities_names, trials, max_new_tokens, transcription_txt_file)
                 trials += 1
                 if sym_diff:
                     with open('./data/found_diffs.txt', 'a', encoding='utf-8') as file:
