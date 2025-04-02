@@ -53,7 +53,7 @@ To set up the environment for this project, follow these steps:
     ```sh
     python asr-dataset-merger.py
     ```
-6. Convert dataset to HDF5 format. Audio and transcript will be pre-processed with the Whisper feature extractor and tokenizer to be fit for model training.
+6. Convert dataset to HDF5 format. Audio and transcript will be pre-processed with the Whisper feature extractor and tokenizer to be fit for model training (under contruction)
     ```sh
     python hdf5-converter.py
     ```
