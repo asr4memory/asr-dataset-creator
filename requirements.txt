@@ -7,3 +7,4 @@ tqdm
 gliner
 transformers
 accelerate
+h5py
