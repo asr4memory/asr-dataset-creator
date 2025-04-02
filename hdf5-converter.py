@@ -60,7 +60,7 @@ def process_batch(batch_files, batch_transcripts, target_sr=16000, max_length_se
 
     return list(batch_audio_data), list(batch_transcriptions), list(sample_rates)
 
-def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_seconds=30, n_jobs=4):
+def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_seconds=30, n_jobs=4, batch_size=100):
     """Converts a dataset to HDF5 format with fixed-length audio arrays using optimized writing."""
     logging.info(f"Converting {CSV_FILE} with {n_jobs} parallel jobs")
     
@@ -132,10 +132,10 @@ def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_se
             filename_dataset[i:end_idx] = batch_filenames
 
         # Process files in batches
-        for i in tqdm(range(0, len(file_names), BATCH_SIZE), desc="Converting to HDF5", unit="batch"):
+        for i in tqdm(range(0, len(file_names), batch_size), desc="Converting to HDF5", unit="batch"):
             batch_start_time = time.time()
             
-            batch_end = min(i + BATCH_SIZE, len(file_names))
+            batch_end = min(i + batch_size, len(file_names))
             batch_files = [os.path.join(BASE_DIR, f) for f in file_names[i:batch_end]]
             batch_transcripts = transcriptions[i:batch_end]
 
@@ -165,13 +165,13 @@ def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_se
             
             # Log detailed timing information for performance analysis
             if i % 5 == 0:
-                logging.info(f"Batch {i//BATCH_SIZE+1}/{len(file_names)//BATCH_SIZE+1}: "
+                logging.info(f"Batch {i//batch_size+1}/{len(file_names)//batch_size+1}: "
                              f"Audio processing: {batch_total_time-hdf5_write_time:.2f}s, "
                              f"HDF5 write: {hdf5_write_time:.2f}s, "
                              f"Total: {batch_total_time:.2f}s")
             
             # Call flush occasionally to ensure data is written to disk
-            if i % (BATCH_SIZE * 10) == 0:
+            if i % (batch_size * 10) == 0:
                 hdf5_file.flush()
 
     logging.info(f"Conversion to HDF5 completed: {OUTPUT_HDF5.stem}")
@@ -206,9 +206,6 @@ def test_hdf5(hdf5_file):
 
 def main():
     """Main function to execute the HDF5 conversion process."""
-    # Set global variables
-    global OUTPUT_DIRECTORY, BATCH_SIZE, N_JOBS, INPUT_DIRECTORY, TARGET_SR, MAX_LENGTH_SECONDS
-
     # Load configuration
     config = get_config()["hdf5_converter"]
     config_logging = get_config()["logging"]
@@ -246,7 +243,7 @@ def main():
                 OUTPUT_HDF5 = OUTPUT_DIRECTORY / f"{BASE_DIR.stem}.h5"
                 
                 start_time = time.time()
-                hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, TARGET_SR, MAX_LENGTH_SECONDS, N_JOBS)
+                hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, TARGET_SR, MAX_LENGTH_SECONDS, N_JOBS, BATCH_SIZE)
                 conversion_time = time.time() - start_time
                 logging.info(f"Dataset conversion completed in {conversion_time:.2f} seconds")
                 
