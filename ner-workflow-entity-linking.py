@@ -22,7 +22,8 @@ To-Do:
 - Remove common wrongly recognized entities from unique_entities list  --> CHECK
 - Try running Llama-3.3-70B-Instruct model --> CHECK
 - Automatically add false names to blacklist? --> CHECK
-- Implement Entity Linking with CSV of historical persons --> NEW
+- Implement Entity Linking with CSV of historical persons --> Check
+- Let the LLM generate a confidence score for the entities classification
 """
 
 def load_gliner_model():
@@ -172,7 +173,7 @@ def filter_real_entities(llm_model, llm_tokenizer, unique_entities, unique_entit
     # Define the prompt for the LLM
     prompt = (
         "Du erhältst eine Liste von Entitäten (Personen und Adressen), die per Named Entity Recognition erkannt wurden.\n"
-        "1) Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt, und gib die Antwort ausschließlich im JSON-Format zurück.\n"
+        "1) Bitte prüfe, bei welchen der genannten Entitäten es sich um historische Persönlichkeiten oder Orte handelt.\n"
         "2) Bitte prüfe, bei welchen Personen (Entitätentyp 'person') es sich um ausschließlich richtige Vornamen und/oder Nachnamen handelt. Dabei kann es sich entweder nur um einen Vornamen (Beispiel: Max) oder nur um einen Nachnamen (Beispiel: Müller) handeln oder der Vor- und Nachname zusammengeschrieben sein (Beispiel: Max Müller). Die Vor- und Nachnamen können auch in Zusammenhang mit anderen Begriffen stehen (Beispiele: Herr Müller, Frau Müller). Bei dem Entitätentyp 'full address' sollte in diesem Fall der Wert immer 'false' sein.\n"
         "3) Bitte prüfe, bei welchen Adressen (Entitätentyp 'full address') es sich um richtige Adressen handelt. Bei einer richtigen Adresse handelt es sich ausschließlich nur dann, wenn eine Straße zusammen mit einer Hausnummer auftritt (Beispiel: Musterstraße 1). Bei dem Entitätentyp 'person' sollte in diesem Fall der Wert immer 'false' sein.\n"
         "Jede Entität sollte als ein Objekt im folgenden Format dargestellt werden:\n"
@@ -295,15 +296,17 @@ def entity_linking(entities, historical_df, threshold=80):
         entity_type = entity['entity_type']
         is_real_name = entity['is_real_name']
         is_real_address = entity['is_real_address']
+
+        # Initialize historical information
+        entity['match_found_in_list'] = None
+        entity['match_score'] = 0
         
-        # Initialize historical information if not already present
-        if 'is_historical' not in entity:
-            entity['is_historical'] = False
-        if 'match_found_in_list' not in entity:
-            entity['match_found_in_list'] = None
-        if 'match_score' not in entity:
-            entity['match_score'] = 0
-        
+        # Skip entity linking for non-real names/addresses
+        if not ((entity_type == "person" and is_real_name) or 
+                ((entity_type == "full address" or entity_type == "residential address") and is_real_address)):
+            enhanced_entities.append(entity)
+            continue
+            
         # Map GLiNER entity types to historical entity types
         matching_types = []
         if entity_type == "person" and is_real_name:
