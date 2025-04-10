@@ -38,7 +38,7 @@ To set up the environment for this project, follow these steps:
     ```sh
     python ner-workflow-mac.py
     ```
-        ```sh
+    ```sh
     python ner-workflow-entity-linking.py
     ```
 3. Anonymize the subtile files if necessary (`.vtt`) using the JSON files (`.json`) provided by the ASR4Memory pipelines.
