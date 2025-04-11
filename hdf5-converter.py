@@ -89,6 +89,7 @@ def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_se
             shape=(len(file_names), max_length_samples),
             dtype=np.float32,
             compression="lzf",  # Use faster LZF compression instead of gzip
+            # compression_opts=9,  # Use level 1 for faster compression
             chunks=audio_chunks,
             shuffle=True,  # Improves compression
             fletcher32=False  # Disable checksums for better performance
@@ -101,6 +102,7 @@ def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_se
             shape=(len(file_names),),
             dtype=dt_str,
             compression="lzf",
+            # compression_opts=9,
             chunks=(str_chunks,),
             fletcher32=False
         )
@@ -111,6 +113,7 @@ def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_se
             shape=(len(file_names),),
             dtype=np.int32,
             compression="lzf",
+            compression_opts=9,
             chunks=(str_chunks,),
             fletcher32=False
         )
@@ -121,6 +124,7 @@ def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_se
             shape=(len(file_names),),
             dtype=dt_str,
             compression="lzf",
+            # compression_opts=9,
             chunks=(str_chunks,),
             fletcher32=False
         )
