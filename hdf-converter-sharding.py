@@ -404,7 +404,6 @@ def process_dataset_with_splits(BASE_DIR, CSV_FILE, OUTPUT_DIR, shard_size=1000,
     )
     logging.info(f"Training split conversion completed in {time.time() - start_time:.2f} seconds")
     split_info["train"] = train_shard_info
-    test_sharded_hdf5(train_shard_info, train_shard_dir)
     
     # Process validation split
     start_time = time.time()
@@ -414,7 +413,6 @@ def process_dataset_with_splits(BASE_DIR, CSV_FILE, OUTPUT_DIR, shard_size=1000,
     )
     logging.info(f"Validation split conversion completed in {time.time() - start_time:.2f} seconds")
     split_info["val"] = val_shard_info
-    test_sharded_hdf5(val_shard_info, val_shard_dir)
     
     # Process test split
     start_time = time.time()
@@ -424,6 +422,10 @@ def process_dataset_with_splits(BASE_DIR, CSV_FILE, OUTPUT_DIR, shard_size=1000,
     )
     logging.info(f"Test split conversion completed in {time.time() - start_time:.2f} seconds")
     split_info["test"] = test_shard_info
+
+    # Test the sharded HDF5 files for each split
+    test_sharded_hdf5(train_shard_info, train_shard_dir)
+    test_sharded_hdf5(val_shard_info, val_shard_dir)
     test_sharded_hdf5(test_shard_info, test_shard_dir)
     
     # Save all split info to a single metadata file, but without sample details
@@ -445,6 +447,7 @@ def process_dataset_with_splits(BASE_DIR, CSV_FILE, OUTPUT_DIR, shard_size=1000,
         "train_ratio": len(train_df) / (len(train_df) + len(val_df) + len(test_df)),
         "val_ratio": len(val_df) / (len(train_df) + len(val_df) + len(test_df)),
         "test_ratio": len(test_df) / (len(train_df) + len(val_df) + len(test_df)),
+        "ramdiom_seed": random_seed,
         "splits": summary_split_info
     }
     # Save all split info to JSON with ensure_ascii=False for better readability
