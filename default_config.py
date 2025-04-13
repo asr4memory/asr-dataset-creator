@@ -42,8 +42,11 @@ CONST_DEFAULT_CONFIG = {
         "output_directory": "",
         "batch_size": 100,
         "threads": 4,
-        "model": "openai/whisper-large-v3",
-        "language": "german",
+        "shard_size": 8192,
+        "train_ratio": 0.8,
+        "val_ratio": 0.1,
+        "test_ratio": 0.1,
+        "random_seed": 1337,
     },
     "dataset_test": {
         "input_directory": "",

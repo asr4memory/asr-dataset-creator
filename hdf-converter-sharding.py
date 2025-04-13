@@ -473,11 +473,11 @@ def main():
     MAX_LENGTH_SECONDS = 30  # Standard 30-second clips for Whisper
     
     # Sharding and splitting configuration
-    SHARD_SIZE = int(config.get("shard_size", 8192))
-    TRAIN_RATIO = float(config.get("train_ratio", 0.8))
-    VAL_RATIO = float(config.get("val_ratio", 0.1))
-    TEST_RATIO = float(config.get("test_ratio", 0.1))
-    RANDOM_SEED = int(config.get("random_seed", 1337))
+    SHARD_SIZE = int(config.get("shard_size"))
+    TRAIN_RATIO = float(config.get("train_ratio"))
+    VAL_RATIO = float(config.get("val_ratio"))
+    TEST_RATIO = float(config.get("test_ratio"))
+    RANDOM_SEED = int(config.get("random_seed"))
     
     # For large datasets, optimize batch size for I/O performance
     if BATCH_SIZE > 200:

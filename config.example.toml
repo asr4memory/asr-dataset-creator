@@ -50,8 +50,11 @@ input_directory = "data/hdf5_converter/_input"
 output_directory = "data/hdf5_converter/_output"      
 batch_size = "400"       
 threads = "16" 
-model = "openai/whisper-large-v3"
-language = "german"
+shard_size = "8192"
+train_ratio = "0.8"
+val_ratio = "0.1"
+test_ration = "0.1"
+random_seed = "1337"
 
 [dataset_test]
 input_directory = "data/dataset_test/_input"
