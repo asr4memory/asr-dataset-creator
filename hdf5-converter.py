@@ -10,6 +10,7 @@ from app_config import get_config
 from utils import set_up_logging
 import logging
 from pathlib import Path
+import json
 
 def process_audio_file(wav_path, transcript, target_sr=16000, max_length_seconds=30):
     """Loads an audio file, resamples to target sample rate, and pads/truncates to fixed length."""
@@ -60,7 +61,7 @@ def process_batch(batch_files, batch_transcripts, target_sr=16000, max_length_se
 
     return list(batch_audio_data), list(batch_transcriptions), list(sample_rates)
 
-def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_seconds=30, n_jobs=4, batch_size=100):
+def hdfconverter(BASE_DIR, CSV_FILE, DATASET_DIR, OUTPUT_HDF5, target_sr=16000, max_length_seconds=30, n_jobs=4, batch_size=100):
     """Converts a dataset to HDF5 format with fixed-length audio arrays using optimized writing."""
     logging.info(f"Converting {CSV_FILE} with {n_jobs} parallel jobs")
     
@@ -128,7 +129,15 @@ def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_se
             chunks=(str_chunks,),
             fletcher32=False
         )
-        
+
+        # Collect detailed sample information if requested
+        dataset_name = os.path.basename(BASE_DIR)
+        all_info = {
+            "dataset_name": dataset_name,
+            "total_files": len(file_names),
+            "samples": []
+        }
+
         # Store the filenames in one batch operation
         for i in range(0, len(file_names), str_chunks):
             end_idx = min(i + str_chunks, len(file_names))
@@ -136,7 +145,7 @@ def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_se
             filename_dataset[i:end_idx] = batch_filenames
 
         # Process files in batches
-        for i in tqdm(range(0, len(file_names), batch_size), desc="Converting to HDF5", unit="batch"):
+        for batch_idx in tqdm(range(0, len(file_names), batch_size), desc="Converting to HDF5", unit="batch"):
             batch_start_time = time.time()
             
             batch_end = min(i + batch_size, len(file_names))
@@ -155,6 +164,44 @@ def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_se
             
             # Create numpy arrays for batch storage
             audio_batch_array = np.array(batch_audio, dtype=np.float32)
+
+            for i in range(batch_len):
+                # Get the actual file index in this shard
+                sample_idx = batch_idx + i
+                
+                # Skip if we're somehow out of bounds
+                if sample_idx >= len(file_names):
+                    continue
+                    
+                # Get sample data
+                audio = audio_batch_array[i]
+                filename = file_names[sample_idx]
+                transcript = batch_transcription[i]
+                sample_rate = batch_sample_rates[i]
+                
+                # Calculate stats
+                non_zero_samples = np.sum(audio != 0)
+                audio_duration_seconds = non_zero_samples / sample_rate
+                audio_min = float(np.min(audio))
+                audio_max = float(np.max(audio))
+                audio_mean = float(np.mean(audio))
+                
+                # Store sample info
+                sample_info = {
+                    "index": sample_idx,
+                    "filename": filename,
+                    "transcript": transcript,
+                    "sample_rate": int(sample_rate),
+                    "total_samples": int(len(audio)),
+                    "non_zero_samples": int(non_zero_samples),
+                    "duration_seconds": float(audio_duration_seconds),
+                    "audio_stats": {
+                        "min": audio_min,
+                        "max": audio_max,
+                        "mean": audio_mean
+                    }
+                }
+                all_info["samples"].append(sample_info)
             
             # Measure HDF5 write time
             hdf5_write_start = time.time()
@@ -177,6 +224,10 @@ def hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, target_sr=16000, max_length_se
             # Call flush occasionally to ensure data is written to disk
             if i % (batch_size * 10) == 0:
                 hdf5_file.flush()
+    
+    # Save metadata to a separate file
+    with open(os.path.join(DATASET_DIR, f"{dataset_name}_metadata.json"), 'w', encoding='utf-8') as f:
+        json.dump(all_info, f, ensure_ascii=False, indent=2)
 
     logging.info(f"Conversion to HDF5 completed: {OUTPUT_HDF5.stem}")
 
@@ -244,10 +295,12 @@ def main():
             logging.info(f"Processing dataset: {BASE_DIR.name}")
             if BASE_DIR.is_dir():
                 CSV_FILE = BASE_DIR / "metadata.csv"
-                OUTPUT_HDF5 = OUTPUT_DIRECTORY / f"{BASE_DIR.stem}.h5"
+                DATASET_DIR = OUTPUT_DIRECTORY / BASE_DIR.stem
+                DATASET_DIR.mkdir(parents=True, exist_ok=True)
+                OUTPUT_HDF5 = DATASET_DIR / f"{BASE_DIR.stem}.h5"
                 
                 start_time = time.time()
-                hdfconverter(BASE_DIR, CSV_FILE, OUTPUT_HDF5, TARGET_SR, MAX_LENGTH_SECONDS, N_JOBS, BATCH_SIZE)
+                hdfconverter(BASE_DIR, CSV_FILE, DATASET_DIR, OUTPUT_HDF5, TARGET_SR, MAX_LENGTH_SECONDS, N_JOBS, BATCH_SIZE)
                 conversion_time = time.time() - start_time
                 logging.info(f"Dataset conversion completed in {conversion_time:.2f} seconds")
                 
