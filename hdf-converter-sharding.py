@@ -373,7 +373,7 @@ def test_sharded_hdf5(shard_info, shard_dir):
 
 def process_dataset_with_splits(BASE_DIR, CSV_FILE, OUTPUT_DIR, shard_size=1000, 
                               target_sr=16000, max_length_seconds=30, n_jobs=4, batch_size=100,
-                              train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, random_seed=42):
+                              train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, random_seed=1337):
     """Process a dataset by splitting it and creating sharded HDF5 files for each split."""
     # Verwende den tatsächlichen Datensatznamen
     dataset_name = os.path.basename(BASE_DIR)
