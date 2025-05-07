@@ -12,7 +12,7 @@ from app_config import get_config
 from utils import set_up_logging
 import logging
 from pathlib import Path
-from sklearn.model_selection import train_test_split
+from datasets import load_dataset
 
 def process_audio_file(wav_path, transcript, target_sr=16000, max_length_seconds=30):
     """Loads an audio file, resamples to target sample rate, and pads/truncates to fixed length."""
@@ -112,40 +112,53 @@ def create_hdf5_datasets(hdf5_file, num_samples, max_length_samples, chunk_sampl
     
     return audio_dataset, transcript_dataset, sample_rate_dataset, filename_dataset
 
-def split_dataset(csv_file, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, random_seed=1337):
+def split_dataset(
+    csv_file: str | Path,
+    train_ratio: float = 0.8,
+    val_ratio: float = 0.1,
+    test_ratio: float = 0.1,
+    random_seed: int = 1337
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    Split the dataset into training, validation, and test sets based on the given ratios.
-    Returns DataFrames for each split.
+    Split the dataset into train/validation/test using HuggingFace datasets.
+    Returns three Pandas DataFrames.
     """
-    # Ensure ratios sum to 1
+
+    # 1) Validiere die Ratios
     assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-10, "Ratios must sum to 1"
-    
-    # Read the CSV file
-    df = pd.read_csv(csv_file)
-    logging.info(f"Loaded dataset with {len(df)} entries from {csv_file}")
-    
-    # First split: training vs rest
-    train_df, temp_df = train_test_split(
-        df, 
-        train_size=train_ratio, 
-        random_state=random_seed
+
+    # 2) Lade das CSV als HF-Dataset (cast Path -> str)
+    path_str = str(csv_file)
+    # Hier: split="train", nicht "all"
+    ds = load_dataset("csv", data_files=path_str, split="train")
+    logging.info(f"Loaded dataset with {len(ds)} entries from {path_str}")
+
+    # 3) Erster Split: train vs. rest
+    rest_ratio = val_ratio + test_ratio
+    split1 = ds.train_test_split(test_size=rest_ratio, seed=random_seed)
+    train_ds = split1["train"]
+    rest_ds  = split1["test"]
+
+    # 4) Zweiter Split: validation vs. test aus dem Rest
+    val_relative = val_ratio / rest_ratio
+    split2 = rest_ds.train_test_split(test_size=(1 - val_relative), seed=random_seed)
+    val_ds  = split2["train"]
+    test_ds = split2["test"]
+
+    # 5) Log die Größen
+    total = len(ds)
+    logging.info(
+        f"Split dataset: "
+        f"Train: {len(train_ds)} ({len(train_ds)/total:.1%}), "
+        f"Val:   {len(val_ds)} ({len(val_ds)/total:.1%}), "
+        f"Test:  {len(test_ds)} ({len(test_ds)/total:.1%})"
     )
-    
-    # Calculate the ratio for the validation set from the remaining data
-    val_size_adjusted = val_ratio / (val_ratio + test_ratio)
-    
-    # Second split: validation vs test from the remaining data
-    val_df, test_df = train_test_split(
-        temp_df, 
-        train_size=val_size_adjusted, 
-        random_state=random_seed
-    )
-    
-    # Log split sizes
-    logging.info(f"Split dataset: Training: {len(train_df)} ({len(train_df)/len(df):.1%}), "
-                 f"Validation: {len(val_df)} ({len(val_df)/len(df):.1%}), "
-                 f"Test: {len(test_df)} ({len(test_df)/len(df):.1%})")
-    
+
+    # 6) Konvertiere zurück zu Pandas
+    train_df = train_ds.to_pandas()
+    val_df   = val_ds.to_pandas()
+    test_df  = test_ds.to_pandas()
+
     return train_df, val_df, test_df
 
 def save_split_metadata(output_dir, dataset_name, train_df, val_df, test_df):
